@@ -230,3 +230,22 @@ read_doc_text seam when needed); lazy pypdf import with silent fallback
 Revisit when: Scanned PDFs need OCR, DOCX solicitations appear, or extraction
 quality (layout/columns) causes false rejections — then consider layout-mode
 extraction or per-page matching.
+## 017 — fonttools evaluated for PDF extraction; not adopted
+
+Decision: Do not keep fonttools. Extracted text from the real RFP PDF is
+byte-identical (189,263 chars) with and without it, so it cannot change any
+gate outcome. The earlier FIN-01/REG-01 downgrades were genuine gate behavior:
+the PDF extracts with spacing artifacts ("limits o f not less than",
+"registrat ion") and the model quoted the normalized wording, which is
+correctly non-verbatim. On re-run, REG-01 passed by quoting a different,
+cleanly extracted sentence — model variation, not an extraction change.
+FIN-01 still downgrades on the same artifact.
+Why: A dependency must earn its place with a measured difference; here the
+measured difference is zero. The real follow-up, if these artifacts ever
+block a verdict that matters, is extraction-tolerant matching (e.g. ignoring
+spurious intra-word spaces) — not a font library.
+Alternatives: Keep fonttools "in case" (rejected — speculative deps rot);
+loosen the gate to accept near-verbatim quotes (rejected — the non-negotiable
+is verbatim for a reason).
+Revisit when: A PDF extracts differently with fonttools installed (re-run the
+byte-compare), or pypdf makes it mandatory.
