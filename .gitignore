@@ -9,3 +9,5 @@ secrets/
 *.db
 .uv-cache/
 __pycache__/
+drop/*
+!drop/.gitkeep

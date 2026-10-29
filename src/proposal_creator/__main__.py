@@ -8,6 +8,7 @@ from contextlib import closing
 
 from .checks import run_checks
 from .db import DEFAULT_DB_PATH, connect, get_opportunity, seed_examples
+from .intake import DEFAULT_DROP_DIR, scan_drop
 from .web import HOST, PORT, serve
 
 
@@ -28,6 +29,11 @@ def build_parser() -> argparse.ArgumentParser:
 
     check_p = sub.add_parser("check", help="Print deterministic checks for one record.")
     check_p.add_argument("id", type=int, help="Opportunity id")
+
+    intake_p = sub.add_parser("intake", help="Scan the drop folder for new files.")
+    intake_p.add_argument(
+        "--drop", default=str(DEFAULT_DROP_DIR), help="Folder to scan (default: drop)"
+    )
     return parser
 
 
@@ -50,6 +56,12 @@ def main(argv: list[str] | None = None) -> int:
         print(f"{row['title']} (id {row['id']})")
         for result in results:
             print(f"[{result['result'].upper():4}] {result['label']}: {result['detail']}")
+        return 0
+    if args.command == "intake":
+        added, skipped = scan_drop(args.drop, args.db)
+        for stub in added:
+            print(f"added: {stub['document_path']} (title: {stub['title']})")
+        print(f"intake complete: added {len(added)}, skipped {len(skipped)}.")
         return 0
     return 2  # unreachable: argparse enforces a command
 

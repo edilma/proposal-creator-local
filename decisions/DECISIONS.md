@@ -127,3 +127,20 @@ recomputing per view is cheap).
 Revisit when: Checks need history ("when did this start failing") or new rule
 kinds that need the document text (those belong to the Decide slice, and still
 stay model-free where possible).
+## 012 — Drop-folder intake: stubs by filename, matched by path
+
+Decision: `proposal-creator intake` scans `drop/` and creates one stub record
+per new file: source `drop`, title from the filename stem, status `new`, and a
+note that dates need review. Re-scans match on the stored document path and add
+nothing; dotfiles and subdirectories are skipped. Stored paths are relative to
+the project root (portable across machines). Dropped files are gitignored —
+only `drop/.gitkeep` is committed.
+Why: Filename-as-title is predictable and the human renames/refines later (no
+edit UI yet, so anything cleverer would be unfixable). Matching by path is the
+only stable identity a dropped file has. Ignoring contents keeps binaries and
+possibly distribution-limited solicitations out of the public repo.
+Alternatives: Parse titles/dates out of the documents at intake (fragile, and
+PDF parsing needs a new dependency — deferred); commit dropped files as
+evidence (revisit if evidence retention in git is ever wanted).
+Revisit when: Intake needs subfolders per opportunity, or automatic
+date/agency extraction proves reliable.

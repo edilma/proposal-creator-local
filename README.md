@@ -35,6 +35,10 @@ Then open http://127.0.0.1:8000/ in your browser.
 - `check <id>` prints the same deterministic checks in the terminal:
   deadline (passed / closing soon / days left), not-open-yet notice, and
   whether the attached document exists. No model calls, ever.
+- `intake` scans the `drop/` folder and creates one stub record per new file
+  (title from the filename, status `new`, re-runs add nothing). Drop
+  solicitation files there for portals without an API. Dropped files stay
+  local — only `drop/.gitkeep` is committed.
 
 First `uv sync` downloads the `hatchling` build backend from PyPI (one-time, free);
 after that everything is local.
@@ -50,6 +54,7 @@ uv run python -m unittest discover -s tests -v
 - `src/proposal_creator/db.py` — schema, queries, seed data
 - `src/proposal_creator/checks.py` — deterministic checks (deadline, opening, document)
 - `src/proposal_creator/web.py` — loopback-only list + detail pages (stdlib `http.server`)
-- `src/proposal_creator/__main__.py` — `seed` / `serve` / `check` CLI
+- `src/proposal_creator/__main__.py` — `seed` / `serve` / `check` / `intake` CLI
+- `src/proposal_creator/intake.py` — drop-folder scanning
 - `tests/` — stdlib `unittest` suite (DB + page rendering + handler)
 - `data/` — company profile; the SQLite file lives here too (gitignored)
