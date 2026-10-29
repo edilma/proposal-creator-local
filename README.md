@@ -39,6 +39,12 @@ Then open http://127.0.0.1:8000/ in your browser.
   (title from the filename, status `new`, re-runs add nothing). Drop
   solicitation files there for portals without an API. Dropped files stay
   local — only `drop/.gitkeep` is committed.
+- `reqs` lists the requirement checklist (from `data/requirements_gov.json`).
+  `set-eval <id> <code> <PASS|FAIL|UNKNOWN> --quote "..."` records one
+  judgment; `evals <id>` shows the checklist. The detail page shows it too.
+- The quote gate: PASS requires a quote, and any quote is refused unless it
+  appears verbatim in the solicitation — when the document is readable
+  plain text (`.txt`/`.md`). Other formats store the quote as *unverified*.
 
 First `uv sync` downloads the `hatchling` build backend from PyPI (one-time, free);
 after that everything is local.
@@ -54,7 +60,10 @@ uv run python -m unittest discover -s tests -v
 - `src/proposal_creator/db.py` — schema, queries, seed data
 - `src/proposal_creator/checks.py` — deterministic checks (deadline, opening, document)
 - `src/proposal_creator/web.py` — loopback-only list + detail pages (stdlib `http.server`)
-- `src/proposal_creator/__main__.py` — `seed` / `serve` / `check` / `intake` CLI
+- `src/proposal_creator/__main__.py` — `seed` / `serve` / `check` / `intake` /
+  `set-eval` / `evals` / `reqs` CLI
 - `src/proposal_creator/intake.py` — drop-folder scanning
+- `src/proposal_creator/evals.py` — requirements, evaluations, quote gate
+- `data/requirements_gov.json` — the government checklist (data, not code)
 - `tests/` — stdlib `unittest` suite (DB + page rendering + handler)
 - `data/` — company profile; the SQLite file lives here too (gitignored)

@@ -144,3 +144,26 @@ PDF parsing needs a new dependency — deferred); commit dropped files as
 evidence (revisit if evidence retention in git is ever wanted).
 Revisit when: Intake needs subfolders per opportunity, or automatic
 date/agency extraction proves reliable.
+## 013 — Evaluations model: checklist in data, quote gate in storage
+
+Decision: Requirements live in `data/requirements_gov.json` (7 codes:
+REG/CAP/EXP/CERT/FIN/PERF/COMP) and load into a `requirements` table; judgments
+go in `evaluations` (one row per opportunity+requirement, upserted). The
+no-quote-no-PASS rule is enforced where rows are written: PASS without a quote
+is rejected, and any quote is rejected unless it appears verbatim
+(whitespace-normalized) in the solicitation text. Verification works for
+plain-text documents (.txt/.md) today; other formats store the quote flagged
+`unverified` rather than blocking manual entry. Shown on the detail page and
+via `set-eval` / `evals` / `reqs`.
+Why: Data-driven checklist honors "government first, corporate later" — a
+corporate JSON file swaps the whole checklist with no code change. Enforcing
+the gate at the storage layer (not in the UI or a future model prompt) means
+neither a human typo nor a model hallucination can bank a fake PASS when the
+text is checkable.
+Alternatives: Free-text requirement names per evaluation (loses the stable
+checklist); exact-match quotes with no whitespace normalization (too brittle
+across PDF line breaks); blocking all evals on unreadable formats (would make
+the feature useless until PDF parsing lands).
+Revisit when: PDF/DOCX text extraction arrives (then most quotes become
+verifiable — likely via a `pypdf` dependency), or the model starts writing
+evaluations through this same function.

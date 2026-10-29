@@ -28,6 +28,26 @@ CREATE TABLE IF NOT EXISTS opportunities (
     updated_at TEXT NOT NULL DEFAULT (strftime('%Y-%m-%dT%H:%M:%fZ', 'now')),
     UNIQUE (source, external_id)
 );
+
+CREATE TABLE IF NOT EXISTS requirements (
+    code TEXT PRIMARY KEY,
+    category TEXT NOT NULL,
+    question TEXT NOT NULL,
+    guidance TEXT
+);
+
+CREATE TABLE IF NOT EXISTS evaluations (
+    id INTEGER PRIMARY KEY AUTOINCREMENT,
+    opportunity_id INTEGER NOT NULL REFERENCES opportunities(id),
+    requirement_code TEXT NOT NULL REFERENCES requirements(code),
+    verdict TEXT NOT NULL,
+    quote TEXT,
+    verified INTEGER,
+    note TEXT,
+    evaluated_by TEXT NOT NULL DEFAULT 'human',
+    created_at TEXT NOT NULL DEFAULT (strftime('%Y-%m-%dT%H:%M:%fZ', 'now')),
+    UNIQUE (opportunity_id, requirement_code)
+);
 """
 
 SEED_EXAMPLES = [

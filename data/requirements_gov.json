@@ -1,0 +1,44 @@
+[
+  {
+    "code": "REG-01",
+    "category": "eligibility",
+    "question": "Is the company eligible to bid (registration and set-aside)?",
+    "guidance": "Check SAM.gov registration status, the solicitation NAICS code and size standard, and any set-aside (small business, 8(a), HUBZone, SDVOSB, WOSB). The company profile lists active registrations and which certifications it does NOT hold."
+  },
+  {
+    "code": "CAP-01",
+    "category": "capability",
+    "question": "Can the company perform the core work?",
+    "guidance": "Compare the statement of work to the company's core services and past-performance projects. Fail only on a core-service gap, not on unfamiliar wording."
+  },
+  {
+    "code": "EXP-01",
+    "category": "experience",
+    "question": "Does the company meet minimum experience and past-performance requirements?",
+    "guidance": "Check years in business, number and value of comparable contracts, and reference requirements against the profile's past-performance section."
+  },
+  {
+    "code": "CERT-01",
+    "category": "certifications",
+    "question": "Does the company hold required certifications, licenses, or clearances?",
+    "guidance": "Check ISO, SOC 2, CMMC, state licenses, and clearance requirements. The profile explicitly lists what it does not hold — a missing must-have is a FAIL."
+  },
+  {
+    "code": "FIN-01",
+    "category": "financial",
+    "question": "Does the company meet financial, insurance, and bonding requirements?",
+    "guidance": "Compare revenue thresholds, insurance minimums, and bid/performance/payment bond amounts to the profile's financial, insurance, and bonding sections."
+  },
+  {
+    "code": "PERF-01",
+    "category": "performance",
+    "question": "Can the company perform at the required place, schedule, and scale?",
+    "guidance": "Check place of performance, on-site and travel expectations, staffing levels, and period of performance against the profile's geographic, capacity, and staffing fields."
+  },
+  {
+    "code": "COMP-01",
+    "category": "compliance",
+    "question": "Can the company meet security and compliance handling requirements?",
+    "guidance": "Check NIST 800-171, CMMC, HIPAA, FTI/IRS-1075, Section 508, and background-check requirements against the profile's security and compliance section."
+  }
+]

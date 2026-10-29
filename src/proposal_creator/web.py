@@ -14,6 +14,7 @@ from pathlib import Path
 
 from .checks import run_checks, summarize
 from .db import DEFAULT_DB_PATH, connect, get_opportunity, init_db
+from .evals import list_checklist
 
 HOST = "127.0.0.1"
 PORT = 8000
@@ -103,7 +104,7 @@ def render_page(rows: list[sqlite3.Row]) -> str:
 """
 
 
-def render_detail(row: sqlite3.Row) -> str:
+def render_detail(row: sqlite3.Row, checklist: list[sqlite3.Row]) -> str:
     fields = "".join(
         f"<dt>{label}</dt><dd>{_text(row[key])}</dd>" for key, label in DETAIL_FIELDS
     )
@@ -111,6 +112,18 @@ def render_detail(row: sqlite3.Row) -> str:
         f'<tr><td class="{c["result"]}">{c["result"].upper()}</td>'
         f"<td>{_text(c['label'])}</td><td>{_text(c['detail'])}</td></tr>"
         for c in run_checks(row)
+    )
+
+    def evidence(item: sqlite3.Row) -> str:
+        if not item["quote"]:
+            return "—"
+        return "verified" if item["verified"] else "unverified"
+
+    evals = "".join(
+        f"<tr><td>{_text(item['code'])}</td><td>{_text(item['question'])}</td>"
+        f"<td>{_text(item['verdict'])}</td><td>{_text(item['quote'])}</td>"
+        f"<td>{evidence(item)}</td></tr>"
+        for item in checklist
     )
     return f"""<!doctype html>
 <html lang="en">
@@ -123,6 +136,10 @@ def render_detail(row: sqlite3.Row) -> str:
 <h2>Checks</h2>
 <table><thead><tr><th>Level</th><th>Check</th><th>Detail</th></tr></thead>
 <tbody>{checks}</tbody></table>
+<h2>Evaluations</h2>
+<table><thead><tr><th>Code</th><th>Requirement</th><th>Verdict</th>
+<th>Quote</th><th>Evidence</th></tr></thead>
+<tbody>{evals}</tbody></table>
 </body>
 </html>
 """
@@ -149,10 +166,13 @@ class Handler(BaseHTTPRequestHandler):
         if match:
             with closing(connect(self.db_path)) as conn:
                 row = get_opportunity(conn, int(match.group(1)))
+                checklist = (
+                    list_checklist(conn, int(match.group(1))) if row is not None else []
+                )
             if row is None:
                 self.send_error(404, "No such opportunity")
             else:
-                self._send_html(render_detail(row))
+                self._send_html(render_detail(row, checklist))
             return
         self.send_error(404, "Not found")
 
