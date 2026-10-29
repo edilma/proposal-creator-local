@@ -8,3 +8,4 @@ notes/
 secrets/
 *.db
 .uv-cache/
+__pycache__/
