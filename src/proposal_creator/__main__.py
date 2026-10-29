@@ -5,17 +5,22 @@ from __future__ import annotations
 import argparse
 import sys
 from contextlib import closing
+from pathlib import Path
 
 from .checks import run_checks
+from .config import ConfigError, load as load_config
 from .db import DEFAULT_DB_PATH, connect, get_opportunity, seed_examples
 from .evals import (
     DEFAULT_REQUIREMENTS_PATH,
     list_checklist,
     list_requirements,
     load_requirements,
+    read_doc_text,
     set_evaluation,
 )
+from .evaluate import build_messages, run_evaluate
 from .intake import DEFAULT_DROP_DIR, scan_drop
+from .model import ModelError
 from .web import HOST, PORT, serve
 
 
@@ -55,6 +60,17 @@ def build_parser() -> argparse.ArgumentParser:
     evals_p.add_argument("id", type=int, help="Opportunity id")
 
     sub.add_parser("reqs", help="List the requirement checklist.")
+
+    eval_p = sub.add_parser("evaluate", help="Judge one record with the model.")
+    eval_p.add_argument("id", type=int, help="Opportunity id")
+    eval_p.add_argument(
+        "--only", action="append", default=None,
+        help="Requirement code to judge (repeatable; default: all)",
+    )
+    eval_p.add_argument(
+        "--dry-run", action="store_true",
+        help="Print the prompt without calling the model or writing anything",
+    )
     return parser
 
 
@@ -126,6 +142,67 @@ def main(argv: list[str] | None = None) -> int:
             reqs = list_requirements(conn)
         for req in reqs:
             print(f"{req['code']:8} {req['question']}")
+        return 0
+    if args.command == "evaluate":
+        try:
+            model_config = load_config()
+        except ConfigError as exc:
+            print(f"error: {exc}")
+            return 1
+        print(f"model: {model_config.describe()}")
+        try:
+            profile_text = Path(model_config.company_profile).read_text(
+                encoding="utf-8"
+            )
+        except OSError as exc:
+            print(f"error: cannot read company profile: {exc}.")
+            return 1
+        with closing(connect(args.db)) as conn:
+            row = get_opportunity(conn, args.id)
+            reqs = (
+                [r for r in list_requirements(conn)
+                 if args.only is None or r["code"] in args.only]
+                if row is not None
+                else []
+            )
+            doc_text = read_doc_text(row["document_path"]) if row else None
+        if row is None:
+            print(f"No opportunity with id {args.id}.")
+            return 1
+        if args.only is not None:
+            known = {r["code"] for r in reqs}
+            for code in args.only:
+                if code not in known:
+                    print(f"error: Unknown requirement code: {code}.")
+                    return 1
+        if not doc_text:
+            print(
+                f"error: Opportunity {args.id} has no readable document."
+                " Attach a .txt/.md solicitation before evaluating."
+            )
+            return 1
+        if args.dry_run:
+            for message in build_messages(profile_text, reqs, doc_text):
+                print(f"--- {message['role']} ---")
+                print(message["content"][:1500])
+            return 0
+        try:
+            with closing(connect(args.db)) as conn:
+                report = run_evaluate(
+                    conn, args.id, model_config, profile_text, only=args.only
+                )
+        except (ValueError, ModelError) as exc:
+            print(f"error: {exc}")
+            return 1
+        for item in report["stored"]:
+            print(f"stored: {item['code']} = {item['verdict']}")
+        for item in report["downgraded"]:
+            print(f"downgraded: {item['code']} ({item['reason']})")
+        for code in report["skipped"]:
+            print(f"skipped unknown code: {code}")
+        usage = report.get("usage") or {}
+        if usage:
+            print("tokens: " + ", ".join(f"{k}={v}" for k, v in usage.items()))
         return 0
     return 2  # unreachable: argparse enforces a command
 

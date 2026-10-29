@@ -167,3 +167,46 @@ the feature useless until PDF parsing lands).
 Revisit when: PDF/DOCX text extraction arrives (then most quotes become
 verifiable — likely via a `pypdf` dependency), or the model starts writing
 evaluations through this same function.
+## 014 — Model client: stdlib urllib, config defaults to Muse Spark
+
+Decision: The OpenAI-compatible client (`model.py`) is handwritten over
+`urllib` — no `openai` package, keeping the project dependency-free. Config
+(`config.py`) reads `PROPOSAL_MODEL_*` from the environment with `.env` as
+fallback (env wins); defaults are provider `meta`,
+base URL `https://api.meta.ai/v1`, model `muse-spark-1.3`, reasoning effort
+`minimal`, max_tokens 4000, temperature 0. The key has no default and is
+required; it travels only in the Authorization header and never appears in
+logs, errors, or `describe()` output. `reasoning_effort` is omitted from the
+request when configured blank, so other providers stay compatible. A
+`provider=stub` mode runs the evaluate flow offline with no key and no call.
+Why: A chat-completions POST is ~30 lines with urllib, and zero dependencies
+keeps installs trivial and auditable. Generous max_tokens + minimal reasoning
+is what this reasoning model needs to return content at all. The stub keeps
+the full flow testable and demoable for free.
+Alternatives: The `openai` package (nicer errors, but a dependency for one
+POST); per-provider SDKs (against decision 004 swappability).
+Revisit when: A provider needs features outside plain chat completions
+(tool calls, logprobs), or retries/streaming outgrow the small client.
+
+## 015 — Evaluate: one call, prompt guards, gate downgrades
+
+Decision: `evaluate <id>` judges the checklist in a single model call
+(profile + requirements + solicitation text ? JSON verdicts) and writes every
+verdict through `set_evaluation`. The system prompt states the non-negotiables
+(verbatim quote for PASS, never invent) and declares the solicitation
+untrusted data whose embedded instructions must be ignored. Model output the
+gate refuses (bad PASS quote) is downgraded to UNKNOWN with a note naming the
+failure and the UNVERIFIED proposed quote (labeled do-not-cite); unknown
+requirement codes are skipped and reported; invalid verdicts coerce to UNKNOWN
+with the raw value kept in the note. `--only CODE` limits a run (cheap
+trials); `--dry-run` prints the prompt and writes nothing; token usage prints
+after each run. Refuses to run without a readable (.txt/.md) document.
+Why: One call per opportunity minimizes cost and latency. Downgrade-with-note
+keeps a model mistake visible and reviewable instead of silently stored or
+silently lost. The prompt-injection guard is the code-level form of the
+"untrusted input" non-negotiable.
+Alternatives: One call per requirement (7x cost, no benefit); discard refused
+verdicts silently (hides model quality problems); let the model write verdicts
+directly to the DB (bypasses the gate — never).
+Revisit when: Checklists grow past one prompt window (then batch), or a second
+model pass (self-review of quotes) proves worth its cost.

@@ -1,0 +1,31 @@
+FICTITIOUS SOLICITATION FOR DEMO AND TESTING ONLY. This document is invented;
+no such solicitation exists and no agency issued it.
+
+SOLICITATION: Demo IT Help Desk Support Services
+AGENCY: Department of Veterans Affairs (fictitious notice)
+NAICS: 541511 — Custom Computer Programming Services
+SET-ASIDE: Total small business set-aside.
+PERIOD OF PERFORMANCE: March 1, 2027 through February 28, 2028.
+PLACE OF PERFORMANCE: On-site in Orlando, Florida, up to 25 percent travel.
+
+1. SCOPE. The Contractor shall provide IT help desk support services for
+approximately 500 agency staff, including password resets, workstation setup,
+and ticket triage during business hours.
+
+2. REGISTRATION. The Contractor shall be registered in SAM.gov with an active
+registration at the time of award.
+
+3. EXPERIENCE. The Contractor shall have at least three years of experience
+providing help desk or IT support services under at least two prior contracts.
+
+4. SECURITY. The Contractor shall maintain SOC 2 Type II compliance for all
+systems that store agency ticket data.
+
+5. INSURANCE. The Contractor shall maintain Commercial General Liability
+insurance of at least $1,000,000 per occurrence.
+
+6. BONDING. No bid bond or performance bond is required for this contract.
+
+7. CLEARANCES. No security clearances are required for contractor personnel.
+
+8. PROPOSAL DUE: November 20, 2026, 2:00 PM ET.

@@ -8,14 +8,10 @@ See [AGENTS.md](AGENTS.md) for working rules, `decisions/DECISIONS.md` for why
 things are built the way they are, and `decisions/proposal-system-brainstorm.md`
 for the full vision.
 
-The (fictitious, demo-only) company profile lives at `data/company_profile.md`.
-It is not used yet; the Decide/Draft slices will read it.
+The (fictitious, demo-only) company profile lives at `data/company_profile.md`
+and is what the model judges each solicitation against.
 
-## Slice 1: the local spine
-
-SQLite database + a small local web page listing opportunities. No email, no AI yet.
-
-### Run it
+## Run it
 
 From this folder:
 
@@ -46,24 +42,51 @@ Then open http://127.0.0.1:8000/ in your browser.
   appears verbatim in the solicitation — when the document is readable
   plain text (`.txt`/`.md`). Other formats store the quote as *unverified*.
 
+### The model (Decide)
+
+`evaluate <id>` sends one opportunity (profile + checklist + solicitation text)
+to the configured model in a single call and writes the returned verdicts
+through the quote gate. Anything the gate refuses is downgraded to UNKNOWN with
+an explanatory note — never stored, never silent. `--only CODE` judges a subset
+(cheap trials); `--dry-run` prints the prompt without calling or writing.
+
+Setup: copy `.env.example` to `.env` and set `PROPOSAL_MODEL_API_KEY`.
+Defaults already point at Meta Muse Spark (`muse-spark-1.3`). The key is never
+printed or logged. `PROPOSAL_MODEL_PROVIDER=stub` runs the whole flow offline
+for free (stores UNKNOWN everywhere, calls nothing).
+
+First run (small and cheap — one requirement on the sample solicitation):
+
+```powershell
+uv run proposal-creator evaluate 1 --only CERT-01
+```
+
+(using an opportunity whose document is a `.txt`/`.md` file, e.g. after
+dropping in `samples/demo-it-support-rfp.txt` via `intake`).
+
 First `uv sync` downloads the `hatchling` build backend from PyPI (one-time, free);
 after that everything is local.
 
-### Test it
+## Test it
 
 ```powershell
 uv run python -m unittest discover -s tests -v
 ```
 
-### Layout
+## Layout
 
 - `src/proposal_creator/db.py` — schema, queries, seed data
 - `src/proposal_creator/checks.py` — deterministic checks (deadline, opening, document)
 - `src/proposal_creator/web.py` — loopback-only list + detail pages (stdlib `http.server`)
-- `src/proposal_creator/__main__.py` — `seed` / `serve` / `check` / `intake` /
-  `set-eval` / `evals` / `reqs` CLI
+- `src/proposal_creator/__main__.py` — CLI (`seed` / `serve` / `check` /
+  `intake` / `set-eval` / `evals` / `reqs` / `evaluate`)
 - `src/proposal_creator/intake.py` — drop-folder scanning
 - `src/proposal_creator/evals.py` — requirements, evaluations, quote gate
+- `src/proposal_creator/config.py` — model settings from `.env` / environment
+- `src/proposal_creator/model.py` — OpenAI-compatible client (stdlib only)
+- `src/proposal_creator/evaluate.py` — prompt + one-call judging + gate writes
 - `data/requirements_gov.json` — the government checklist (data, not code)
-- `tests/` — stdlib `unittest` suite (DB + page rendering + handler)
+- `samples/demo-it-support-rfp.txt` — tiny fictitious solicitation for trials
+- `.env.example` — model variables to copy into `.env` (gitignored)
+- `tests/` — stdlib `unittest` suite (DB + pages + intake + evals + brain)
 - `data/` — company profile; the SQLite file lives here too (gitignored)
