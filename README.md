@@ -29,7 +29,12 @@ Then open http://127.0.0.1:8000/ in your browser.
 
 - `seed` inserts two clearly-marked demo rows (idempotent — safe to re-run).
   The database file is `data/opportunities.db` (override with `PROPOSAL_DB`).
-- `serve` runs the read-only list page on loopback only (`--port` to change it).
+- `serve` runs the read-only pages on loopback only (`--port` to change it):
+  the list at `/` (with a Checks summary column) and one detail page per
+  opportunity at `/opp/<id>` showing all fields plus deterministic checks.
+- `check <id>` prints the same deterministic checks in the terminal:
+  deadline (passed / closing soon / days left), not-open-yet notice, and
+  whether the attached document exists. No model calls, ever.
 
 First `uv sync` downloads the `hatchling` build backend from PyPI (one-time, free);
 after that everything is local.
@@ -43,7 +48,8 @@ uv run python -m unittest discover -s tests -v
 ### Layout
 
 - `src/proposal_creator/db.py` — schema, queries, seed data
-- `src/proposal_creator/web.py` — loopback-only list page (stdlib `http.server`)
-- `src/proposal_creator/__main__.py` — `seed` / `serve` CLI
+- `src/proposal_creator/checks.py` — deterministic checks (deadline, opening, document)
+- `src/proposal_creator/web.py` — loopback-only list + detail pages (stdlib `http.server`)
+- `src/proposal_creator/__main__.py` — `seed` / `serve` / `check` CLI
 - `tests/` — stdlib `unittest` suite (DB + page rendering + handler)
 - `data/` — company profile; the SQLite file lives here too (gitignored)

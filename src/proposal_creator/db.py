@@ -106,6 +106,12 @@ def list_opportunities(conn: sqlite3.Connection) -> list[sqlite3.Row]:
     return list(conn.execute("SELECT * FROM opportunities ORDER BY id"))
 
 
+def get_opportunity(conn: sqlite3.Connection, opp_id: int) -> sqlite3.Row | None:
+    return conn.execute(
+        "SELECT * FROM opportunities WHERE id = ?", (opp_id,)
+    ).fetchone()
+
+
 def seed_examples(db_path: Path | str = DEFAULT_DB_PATH) -> int:
     """Insert the two demo rows; skips ones already present. Returns rows added."""
     init_db(db_path)

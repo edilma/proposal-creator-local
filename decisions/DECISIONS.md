@@ -108,3 +108,22 @@ src layout keeps tests importing the installed package, not stray files.
 Alternatives: Flat layout; setuptools backend; committed demo database.
 Revisit when: Packaging needs grow (extras, native deps) or the DB location
 convention stops fitting.
+## 011 — Deterministic checks: what they are and their boundary rules
+
+Decision: `checks.py` holds pure, model-free checks over one opportunity record,
+shown on the detail page (`/opp/<id>`), summarized in the list ("ok" or
+"N failed, M warnings"), and printable via `proposal-creator check <id>`.
+Levels are fail/warn/info/ok. Rules: a deadline counts as passed only when
+close_date is before today (closing day itself still counts as open); 0–7 days
+out is a warning; a missing or unparsable close date is a warning, never a
+silent pass; a future open date is info; a missing document path or a path whose
+file is absent is a warning.
+Why: These answers cost no model call and are never ambiguous, so they run on
+every view. Warnings (not silence) for missing data keep gaps visible instead
+of looking clean.
+Alternatives: Fail on missing close date (too harsh — intake records routinely
+lack it at first); compute checks once at intake and store them (they go stale;
+recomputing per view is cheap).
+Revisit when: Checks need history ("when did this start failing") or new rule
+kinds that need the document text (those belong to the Decide slice, and still
+stay model-free where possible).

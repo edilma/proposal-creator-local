@@ -4,8 +4,10 @@ from __future__ import annotations
 
 import argparse
 import sys
+from contextlib import closing
 
-from .db import DEFAULT_DB_PATH, seed_examples
+from .checks import run_checks
+from .db import DEFAULT_DB_PATH, connect, get_opportunity, seed_examples
 from .web import HOST, PORT, serve
 
 
@@ -23,6 +25,9 @@ def build_parser() -> argparse.ArgumentParser:
     serve_p = sub.add_parser("serve", help="Serve the local opportunities page.")
     serve_p.add_argument("--host", default=HOST, help=f"Bind host (default: {HOST})")
     serve_p.add_argument("--port", type=int, default=PORT, help=f"Port (default: {PORT})")
+
+    check_p = sub.add_parser("check", help="Print deterministic checks for one record.")
+    check_p.add_argument("id", type=int, help="Opportunity id")
     return parser
 
 
@@ -34,6 +39,17 @@ def main(argv: list[str] | None = None) -> int:
         return 0
     if args.command == "serve":
         serve(args.db, args.host, args.port)
+        return 0
+    if args.command == "check":
+        with closing(connect(args.db)) as conn:
+            row = get_opportunity(conn, args.id)
+            results = run_checks(row) if row is not None else []
+        if row is None:
+            print(f"No opportunity with id {args.id}.")
+            return 1
+        print(f"{row['title']} (id {row['id']})")
+        for result in results:
+            print(f"[{result['result'].upper():4}] {result['label']}: {result['detail']}")
         return 0
     return 2  # unreachable: argparse enforces a command
 
