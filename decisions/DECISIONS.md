@@ -210,3 +210,23 @@ verdicts silently (hides model quality problems); let the model write verdicts
 directly to the DB (bypasses the gate — never).
 Revisit when: Checklists grow past one prompt window (then batch), or a second
 model pass (self-review of quotes) proves worth its cost.
+## 016 — PDF quote verification via pypdf (text PDFs; scans stay unverified)
+
+Decision: `read_doc_text` extracts PDF text with pypdf (`PdfReader`, all pages
+joined) so quotes verify against real solicitation PDFs through the unchanged
+gate. `pypdf>=6.21.4` is a declared dependency, imported at module top so a
+broken install fails fast instead of silently disabling verification. Any PDF
+that yields no extractable text (scans, images, encrypted, corrupt) returns
+"unreadable", and quotes against it store as unverified — never auto-rejected.
+Tests build minimal valid PDFs in code (computed xref, no binary fixtures).
+Why: Text PDFs are the common solicitation format, and pypdf is pure Python
+with no transitive dependencies — the smallest possible addition. Treating
+empty extraction as unverifiable (not as "quote absent") keeps the gate honest:
+it refuses only quotes proven absent from known text.
+Alternatives: OCR for scans (heavy native deps like tesseract — deferred until
+a scanned solicitation actually appears); DOCX support (no demand yet; same
+read_doc_text seam when needed); lazy pypdf import with silent fallback
+(rejected — a missing declared dep should be loud).
+Revisit when: Scanned PDFs need OCR, DOCX solicitations appear, or extraction
+quality (layout/columns) causes false rejections — then consider layout-mode
+extraction or per-page matching.

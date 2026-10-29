@@ -23,15 +23,55 @@ REQS = [
 ]
 
 
-def make_db(tmp: str, doc_text: str | None = DOC_TEXT) -> tuple[Path, int]:
-    """Seeded DB + one opportunity; returns (db_path, opp_id). Doc is .txt."""
+def build_pdf_bytes(text_lines: str | list) -> bytes:
+    """Minimal one-page text PDF with computed xref (ASCII only)."""
+    if isinstance(text_lines, str):
+        text_lines = [text_lines]
+
+    def esc(line: str) -> str:
+        return line.replace("\\", "\\\\").replace("(", "\\(").replace(")", "\\)")
+
+    shown = " T* ".join(f"({esc(t)}) Tj" for t in text_lines)
+    stream = f"BT /F1 12 Tf 72 720 Td 14 TL {shown} ET".encode("latin-1")
+    objs = [
+        b"<< /Type /Catalog /Pages 2 0 R >>",
+        b"<< /Type /Pages /Kids [3 0 R] /Count 1 >>",
+        b"<< /Type /Page /Parent 2 0 R /MediaBox [0 0 612 792]"
+        b" /Contents 4 0 R /Resources << /Font << /F1 5 0 R >> >> >>",
+        b"<< /Length " + str(len(stream)).encode() + b" >>\nstream\n"
+        + stream
+        + b"\nendstream",
+        b"<< /Type /Font /Subtype /Type1 /BaseFont /Helvetica >>",
+    ]
+    out: list[bytes] = [b"%PDF-1.4\n"]
+    offsets = []
+    for num, body in enumerate(objs, start=1):
+        offsets.append(sum(map(len, out)))
+        out.append(f"{num} 0 obj\n".encode() + body + b"\nendobj\n")
+    xref_pos = sum(map(len, out))
+    out.append(f"xref\n0 {len(objs) + 1}\n".encode())
+    out.append(b"0000000000 65535 f \n")
+    for off in offsets:
+        out.append(f"{off:010d} 00000 n \n".encode())
+    out.append(f"trailer\n<< /Size {len(objs) + 1} /Root 1 0 R >>\n".encode())
+    out.append(f"startxref\n{xref_pos}\n%%EOF\n".encode())
+    return b"".join(out)
+
+
+def make_db(
+    tmp: str,
+    doc_text: str | None = DOC_TEXT,
+    suffix: str = ".txt",
+    raw: bytes | None = None,
+) -> tuple[Path, int]:
+    """Seeded DB + one opportunity; returns (db_path, opp_id)."""
     db_path = Path(tmp) / "test.db"
     db.init_db(db_path)
     with closing(db.connect(db_path)) as conn:
         req_path = Path(tmp) / "reqs.json"
         req_path.write_text(json.dumps(REQS), encoding="utf-8")
         evals.load_requirements(conn, req_path)
-        doc = Path(tmp) / "sol.txt"
+        doc = Path(tmp) / f"sol{suffix}"
         opp: dict = {
             "source": "drop",
             "external_id": None,
@@ -43,10 +83,14 @@ def make_db(tmp: str, doc_text: str | None = DOC_TEXT) -> tuple[Path, int]:
             "status": "new",
             "verdict": None,
             "blockers": None,
-            "document_path": str(doc) if doc_text is not None else None,
+            "document_path": (
+                str(doc) if (doc_text is not None or raw is not None) else None
+            ),
             "notes": None,
         }
-        if doc_text is not None:
+        if raw is not None:
+            doc.write_bytes(raw)
+        elif doc_text is not None:
             doc.write_text(doc_text, encoding="utf-8")
         opp_id = db.add_opportunity(conn, opp)
     return db_path, opp_id
@@ -70,16 +114,27 @@ class QuoteTest(unittest.TestCase):
         self.assertFalse(evals.quote_in_text("  ", DOC_TEXT))
         self.assertFalse(evals.quote_in_text("", DOC_TEXT))
 
-    def test_read_doc_text_supports_txt_only(self) -> None:
+    def test_read_doc_text_supports_txt_and_pdf(self) -> None:
         with tempfile.TemporaryDirectory() as tmp:
             txt = Path(tmp) / "a.txt"
             txt.write_text("hello", encoding="utf-8")
             self.assertEqual(evals.read_doc_text(str(txt)), "hello")
             pdf = Path(tmp) / "a.pdf"
-            pdf.write_bytes(b"%PDF-1.4 fake")
-            self.assertIsNone(evals.read_doc_text(str(pdf)))
+            pdf.write_bytes(build_pdf_bytes("hello from pdf"))
+            text = evals.read_doc_text(str(pdf))
+            assert text is not None
+            self.assertIn("hello from pdf", text)
             self.assertIsNone(evals.read_doc_text(str(Path(tmp) / "gone.txt")))
             self.assertIsNone(evals.read_doc_text(None))
+
+    def test_read_doc_text_rejects_garbage_and_blank_pdfs(self) -> None:
+        with tempfile.TemporaryDirectory() as tmp:
+            garbage = Path(tmp) / "garbage.pdf"
+            garbage.write_bytes(b"%PDF-1.4 fake")
+            self.assertIsNone(evals.read_doc_text(str(garbage)))
+            blank = Path(tmp) / "blank.pdf"
+            blank.write_bytes(build_pdf_bytes([]))
+            self.assertIsNone(evals.read_doc_text(str(blank)))
 
 
 class GateTest(unittest.TestCase):
@@ -114,6 +169,44 @@ class GateTest(unittest.TestCase):
     def test_pass_with_unreadable_doc_stored_unverified(self) -> None:
         with tempfile.TemporaryDirectory() as tmp:
             db_path, opp_id = make_db(tmp, doc_text=None)
+            with closing(db.connect(db_path)) as conn:
+                row = evals.set_evaluation(
+                    conn, opp_id, "CERT-01", "PASS", quote="some sentence."
+                )
+                self.assertIsNone(row["verified"])
+
+    def test_pass_with_pdf_quote_verified(self) -> None:
+        with tempfile.TemporaryDirectory() as tmp:
+            db_path, opp_id = make_db(
+                tmp, doc_text=None, suffix=".pdf",
+                raw=build_pdf_bytes(DOC_TEXT),
+            )
+            with closing(db.connect(db_path)) as conn:
+                row = evals.set_evaluation(
+                    conn, opp_id, "CERT-01", "PASS",
+                    quote="maintain SOC 2 Type II compliance.",
+                )
+                self.assertEqual(row["verified"], 1)
+
+    def test_pass_with_invented_quote_on_pdf_rejected(self) -> None:
+        with tempfile.TemporaryDirectory() as tmp:
+            db_path, opp_id = make_db(
+                tmp, doc_text=None, suffix=".pdf",
+                raw=build_pdf_bytes(DOC_TEXT),
+            )
+            with closing(db.connect(db_path)) as conn:
+                with self.assertRaises(ValueError):
+                    evals.set_evaluation(
+                        conn, opp_id, "CERT-01", "PASS",
+                        quote="CMMC Level 2 required.",
+                    )
+
+    def test_pass_on_blank_pdf_stored_unverified(self) -> None:
+        with tempfile.TemporaryDirectory() as tmp:
+            db_path, opp_id = make_db(
+                tmp, doc_text=None, suffix=".pdf",
+                raw=build_pdf_bytes([]),
+            )
             with closing(db.connect(db_path)) as conn:
                 row = evals.set_evaluation(
                     conn, opp_id, "CERT-01", "PASS", quote="some sentence."

@@ -4,6 +4,9 @@ version = "0.1.0"
 description = "Local assistant that reads government solicitations and tells a small business whether it can bid."
 readme = "README.md"
 requires-python = ">=3.11"
+dependencies = [
+    "pypdf>=6.21.4",
+]
 
 [project.scripts]
 proposal-creator = "proposal_creator.__main__:main"

@@ -39,8 +39,9 @@ Then open http://127.0.0.1:8000/ in your browser.
   `set-eval <id> <code> <PASS|FAIL|UNKNOWN> --quote "..."` records one
   judgment; `evals <id>` shows the checklist. The detail page shows it too.
 - The quote gate: PASS requires a quote, and any quote is refused unless it
-  appears verbatim in the solicitation — when the document is readable
-  plain text (`.txt`/`.md`). Other formats store the quote as *unverified*.
+  appears verbatim in the solicitation — when the document text is readable
+  (`.txt`/`.md`/text `.pdf`). Other formats, and PDFs with no extractable
+  text (scans), store the quote as *unverified*.
 
 ### The model (Decide)
 
@@ -64,8 +65,8 @@ uv run proposal-creator evaluate 1 --only CERT-01
 (using an opportunity whose document is a `.txt`/`.md` file, e.g. after
 dropping in `samples/demo-it-support-rfp.txt` via `intake`).
 
-First `uv sync` downloads the `hatchling` build backend from PyPI (one-time, free);
-after that everything is local.
+First `uv sync` downloads the `hatchling` build backend and the one runtime
+dependency (`pypdf`) from PyPI (one-time, free); after that everything is local.
 
 ## Test it
 

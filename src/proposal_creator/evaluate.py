@@ -87,7 +87,7 @@ def run_evaluate(
     if not doc_text:
         raise ValueError(
             f"Opportunity {opp_id} has no readable document."
-            " Attach a .txt/.md solicitation before evaluating."
+            " Attach a .txt/.md/.pdf solicitation before evaluating."
         )
     requirements = [
         r for r in list_requirements(conn) if only is None or r["code"] in only

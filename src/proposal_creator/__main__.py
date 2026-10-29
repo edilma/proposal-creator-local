@@ -178,7 +178,7 @@ def main(argv: list[str] | None = None) -> int:
         if not doc_text:
             print(
                 f"error: Opportunity {args.id} has no readable document."
-                " Attach a .txt/.md solicitation before evaluating."
+                " Attach a .txt/.md/.pdf solicitation before evaluating."
             )
             return 1
         if args.dry_run:

@@ -2,8 +2,9 @@
 
 Enforces the non-negotiable at the storage layer: a PASS is stored only with
 a quote, and any stored quote must appear verbatim in the solicitation text
-when that text is available. Quote verification currently supports plain-text
-documents (.txt/.md); anything else stores the quote as unverified.
+when that text is available. Quote verification supports plain-text documents
+(.txt/.md) and text PDFs; anything else — or a PDF with no extractable text,
+such as a scan — stores the quote as unverified.
 """
 
 from __future__ import annotations
@@ -13,9 +14,11 @@ import re
 import sqlite3
 from pathlib import Path
 
+from pypdf import PdfReader
+
 DEFAULT_REQUIREMENTS_PATH = Path("data/requirements_gov.json")
 VERDICTS = ("PASS", "FAIL", "UNKNOWN")
-READABLE_SUFFIXES = {".txt", ".md", ".markdown"}
+READABLE_SUFFIXES = {".txt", ".md", ".markdown", ".pdf"}
 
 
 def normalize(text: str) -> str:
@@ -35,10 +38,24 @@ def read_doc_text(document_path: str | None) -> str | None:
     path = Path(str(document_path))
     if path.suffix.lower() not in READABLE_SUFFIXES:
         return None
+    if path.suffix.lower() == ".pdf":
+        return _read_pdf_text(path)
     try:
         return path.read_text(encoding="utf-8")
     except (OSError, UnicodeDecodeError):
         return None
+
+
+def _read_pdf_text(path: Path) -> str | None:
+    # Broad catch: malformed, encrypted, and image-only PDFs fail in varied
+    # ways, and all of them mean the same thing here — unverifiable.
+    try:
+        text = "\n".join(
+            page.extract_text() or "" for page in PdfReader(str(path)).pages
+        )
+    except Exception:
+        return None
+    return text if text.strip() else None
 
 
 def load_requirements(
