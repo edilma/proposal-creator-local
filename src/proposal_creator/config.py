@@ -70,9 +70,10 @@ def load(
     file_values = _read_env_file(env_file)
 
     def get(name: str, default: str) -> str:
-        if name in environ:
-            return environ[name]
-        return file_values.get(name, default)
+        for source in (environ, file_values):
+            if name in source and source[name].strip():
+                return source[name]
+        return default
 
     provider = get("PROPOSAL_MODEL_PROVIDER", "meta")
     api_key = get("PROPOSAL_MODEL_API_KEY", "")
@@ -87,12 +88,15 @@ def load(
         timeout = int(get("PROPOSAL_MODEL_TIMEOUT", "120"))
     except ValueError as exc:
         raise ConfigError(f"Invalid numeric model setting: {exc}.") from exc
+    reasoning_effort = get("PROPOSAL_MODEL_REASONING_EFFORT", "minimal")
+    if reasoning_effort.strip().lower() == "none":
+        reasoning_effort = ""  # omit the field for other providers
     return ModelConfig(
         provider=provider,
         base_url=get("PROPOSAL_MODEL_BASE_URL", "https://api.meta.ai/v1"),
         api_key=api_key,
         model=get("PROPOSAL_MODEL_NAME", "muse-spark-1.3"),
-        reasoning_effort=get("PROPOSAL_MODEL_REASONING_EFFORT", "minimal"),
+        reasoning_effort=reasoning_effort,
         max_tokens=max_tokens,
         temperature=temperature,
         timeout=timeout,

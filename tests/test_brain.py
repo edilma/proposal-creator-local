@@ -87,6 +87,32 @@ class ConfigTest(unittest.TestCase):
             self.assertEqual(cfg.model, "from-env")  # env beats file
             self.assertEqual(cfg.base_url, "https://api.meta.ai/v1")  # default
 
+    def test_blank_values_fall_back_to_defaults(self) -> None:
+        with tempfile.TemporaryDirectory() as tmp:
+            env_file = Path(tmp) / "t.env"
+            env_file.write_text(
+                f"PROPOSAL_MODEL_API_KEY={SENTINEL}\n"
+                "PROPOSAL_MODEL_MAX_TOKENS=\n"
+                "PROPOSAL_MODEL_TEMPERATURE=   \n"
+                "PROPOSAL_MODEL_NAME=\n",
+                encoding="utf-8",
+            )
+            cfg = config.load(env_file=str(env_file), environ={})
+            self.assertEqual(cfg.max_tokens, 4000)
+            self.assertEqual(cfg.temperature, 0.0)
+            self.assertEqual(cfg.model, "muse-spark-1.3")
+
+    def test_reasoning_effort_none_omits(self) -> None:
+        with tempfile.TemporaryDirectory() as tmp:
+            cfg = config.load(
+                env_file=str(Path(tmp) / "nope.env"),
+                environ={
+                    "PROPOSAL_MODEL_API_KEY": SENTINEL,
+                    "PROPOSAL_MODEL_REASONING_EFFORT": "none",
+                },
+            )
+            self.assertEqual(cfg.reasoning_effort, "")
+
     def test_invalid_numbers_rejected(self) -> None:
         with tempfile.TemporaryDirectory() as tmp:
             env_file = str(Path(tmp) / "nope.env")
