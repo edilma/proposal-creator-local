@@ -68,3 +68,43 @@ Why: Automate where it's clean and legitimate; portals with logins and bot check
 aren't worth fighting.
 Alternatives: Automate portal scraping; stay fully manual.
 Revisit when: More sources offer APIs, or I accept the fragility of scraping.
+## 008 — Opportunities table columns
+
+Decision: The `opportunities` table holds the requested fields (source,
+external_id, title, agency, open_date, close_date, status, verdict, blockers,
+document_path) plus `url` (link back to the solicitation), `notes` (free text),
+and `created_at`/`updated_at` timestamps. Dates are TEXT in ISO-8601 form.
+`UNIQUE(source, external_id)` keeps re-imports from duplicating rows.
+Why: `url` is the cheapest way to get back to the source notice; `notes` holds
+anything that doesn't deserve a column yet; timestamps make "what changed" and
+debugging possible. SQLite has no date type, and ISO-8601 TEXT sorts and compares
+correctly.
+Alternatives: Exactly the requested columns only; INTEGER unix timestamps; a
+separate documents table (overkill while it's one path per opportunity).
+Revisit when: An opportunity needs multiple documents, or verdicts need their own
+history/audit table.
+
+## 009 — Stdlib-only first slice (no web framework)
+
+Decision: Slice 1 uses only the Python standard library: `http.server` for the
+list page (bound to 127.0.0.1), `sqlite3` for storage, `unittest` for tests. No
+third-party dependencies at all.
+Why: The slice needs nothing a framework would add, and zero dependencies means
+zero install risk and nothing to audit. Every value rendered into HTML is escaped
+(`html.escape`), per the untrusted-input rule.
+Alternatives: Flask/FastAPI now; Jinja templates (auto-escaping is nice but adds
+a dependency for one table).
+Revisit when: The page needs forms, editing, or auth — then pick one framework
+(Flask is the likely small choice) and record it here.
+
+## 010 — uv project with src layout and hatchling
+
+Decision: Python project managed by `uv`, `src/proposal_creator` layout,
+`hatchling` build backend, and a `proposal-creator` console script (`seed`,
+`serve`). The venv lives at `.venv/`; the DB defaults to
+`data/opportunities.db` (overridable via `PROPOSAL_DB`); `*.db` is gitignored.
+Why: Matches the repo's decided working method (`uv`, small local pieces);
+src layout keeps tests importing the installed package, not stray files.
+Alternatives: Flat layout; setuptools backend; committed demo database.
+Revisit when: Packaging needs grow (extras, native deps) or the DB location
+convention stops fitting.

@@ -4,3 +4,7 @@ notes/
 
 .env
 
+.venv/
+secrets/
+*.db
+.uv-cache/
