@@ -36,8 +36,12 @@ Then open http://127.0.0.1:8000/ in your browser.
   solicitation files there for portals without an API. Dropped files stay
   local — only `drop/.gitkeep` is committed.
 - `reqs` lists the requirement checklist (from `data/requirements_gov.json`).
-  `set-eval <id> <code> <PASS|FAIL|UNKNOWN> --quote "..."` records one
+  `set-eval <id> <code> <PASS|FAIL|UNKNOWN|N/A> --quote "..."` records one
   judgment; `evals <id>` shows the checklist. The detail page shows it too.
+- `rollup <id>` recomputes the overall verdict from the stored evaluations
+  (CAN BID / NEEDS INFO / CANNOT BID, no model call) and writes it to the
+  record's Verdict/Blockers fields, shown on both pages. `evaluate` does this
+  automatically at the end of each run.
 - The quote gate: PASS requires a quote, and any quote is refused unless it
   appears verbatim in the solicitation — when the document text is readable
   (`.txt`/`.md`/text `.pdf`). "Verbatim" is tested on normalized text
@@ -83,12 +87,13 @@ uv run python -m unittest discover -s tests -v
 - `src/proposal_creator/checks.py` — deterministic checks (deadline, opening, document)
 - `src/proposal_creator/web.py` — loopback-only list + detail pages (stdlib `http.server`)
 - `src/proposal_creator/__main__.py` — CLI (`seed` / `serve` / `check` /
-  `intake` / `set-eval` / `evals` / `reqs` / `evaluate`)
+  `intake` / `set-eval` / `evals` / `reqs` / `evaluate` / `rollup`)
 - `src/proposal_creator/intake.py` — drop-folder scanning
 - `src/proposal_creator/evals.py` — requirements, evaluations, quote gate
 - `src/proposal_creator/config.py` — model settings from `.env` / environment
 - `src/proposal_creator/model.py` — OpenAI-compatible client (stdlib only)
 - `src/proposal_creator/evaluate.py` — prompt + one-call judging + gate writes
+- `src/proposal_creator/rollup.py` — overall verdict from stored evaluations
 - `data/requirements_gov.json` — the government checklist (data, not code)
 - `samples/demo-it-support-rfp.txt` — tiny fictitious solicitation for trials
 - `.env.example` — model variables to copy into `.env` (gitignored)

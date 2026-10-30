@@ -270,3 +270,26 @@ match time is simpler and total).
 Revisit when: A false accept or false refusal is ever traced to this rule —
 then re-examine with the specific quote and text, not by loosening the rule
 in general.
+## 019 — Overall verdict roll-up (deterministic, no model call)
+
+Decision: `rollup.compute_rollup` derives one verdict from stored data:
+passed deadline (via the existing close-date check) -> CANNOT BID with the
+deadline detail as blocker; else any FAIL -> CANNOT BID naming the failed
+codes; else any UNKNOWN -> NEEDS INFO naming the unknown codes; else all
+PASS/N/A -> CAN BID with an empty blocker. No evaluations -> write nothing.
+`apply_rollup` writes Verdict/Blockers (+ bumps updated_at). It runs
+automatically at the end of every evaluate run (over ALL stored evaluations,
+not just a --only subset) and on demand via `rollup <id>` so manual set-eval
+edits can refresh the verdict for free. N/A joins the verdict set as
+satisfied; the model prompt and set-eval accept it. Verdict display needed no
+changes — both pages already render the Verdict column.
+Why: The overall call must be a transparent function of the checklist, never
+a second model judgment that could disagree with it. The standalone command
+exists because recomputing after a manual correction must not cost a model
+call. N/A was required by the rule itself ("all PASS or N/A").
+Alternatives: Model-written overall verdict (rejected — unverifiable second
+judgment); roll up only in evaluate with no command (rejected — manual
+corrections would leave stale verdicts or force paid re-runs); NULL vs empty
+blocker for CAN BID (chose "" per the spec's "blocker empty").
+Revisit when: The verdict needs more states (e.g. BID WITH RISK), weighted
+requirements, or deadline-proximity (not just passed) as an input.

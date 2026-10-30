@@ -20,7 +20,7 @@ from pathlib import Path
 from pypdf import PdfReader
 
 DEFAULT_REQUIREMENTS_PATH = Path("data/requirements_gov.json")
-VERDICTS = ("PASS", "FAIL", "UNKNOWN")
+VERDICTS = ("PASS", "FAIL", "UNKNOWN", "N/A")
 READABLE_SUFFIXES = {".txt", ".md", ".markdown", ".pdf"}
 
 

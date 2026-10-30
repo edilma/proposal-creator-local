@@ -21,6 +21,7 @@ from .evals import (
 from .evaluate import build_messages, run_evaluate
 from .intake import DEFAULT_DROP_DIR, scan_drop
 from .model import ModelError
+from .rollup import apply_rollup
 from .web import HOST, PORT, serve
 
 
@@ -50,7 +51,7 @@ def build_parser() -> argparse.ArgumentParser:
     set_p = sub.add_parser("set-eval", help="Record one checklist evaluation.")
     set_p.add_argument("id", type=int, help="Opportunity id")
     set_p.add_argument("code", help="Requirement code (see: reqs)")
-    set_p.add_argument("verdict", help="PASS, FAIL, or UNKNOWN")
+    set_p.add_argument("verdict", help="PASS, FAIL, UNKNOWN, or N/A")
     set_p.add_argument("--quote", default=None,
                        help="Verbatim sentence (required for PASS)")
     set_p.add_argument("--note", default=None, help="Optional note")
@@ -58,6 +59,11 @@ def build_parser() -> argparse.ArgumentParser:
 
     evals_p = sub.add_parser("evals", help="Show the checklist for one record.")
     evals_p.add_argument("id", type=int, help="Opportunity id")
+
+    rollup_p = sub.add_parser(
+        "rollup", help="Recompute one record's overall verdict (no model call)."
+    )
+    rollup_p.add_argument("id", type=int, help="Opportunity id")
 
     sub.add_parser("reqs", help="List the requirement checklist.")
 
@@ -203,6 +209,31 @@ def main(argv: list[str] | None = None) -> int:
         usage = report.get("usage") or {}
         if usage:
             print("tokens: " + ", ".join(f"{k}={v}" for k, v in usage.items()))
+        if report.get("verdict"):
+            line = f"overall: {report['verdict']}"
+            if report.get("blocker"):
+                line += f" — {report['blocker']}"
+            print(line)
+        return 0
+    if args.command == "rollup":
+        try:
+            with closing(connect(args.db)) as conn:
+                row = get_opportunity(conn, args.id)
+                if row is None:
+                    print(f"No opportunity with id {args.id}.")
+                    return 1
+                verdict, blocker = apply_rollup(conn, args.id)
+        except ValueError as exc:
+            print(f"error: {exc}")
+            return 1
+        if verdict is None:
+            print(f"{row['title']} (id {row['id']}): no evaluations yet;")
+            print("verdict left unset.")
+            return 0
+        print(f"{row['title']} (id {row['id']})")
+        print(f"overall: {verdict}")
+        if blocker:
+            print(f"blocker: {blocker}")
         return 0
     return 2  # unreachable: argparse enforces a command
 

@@ -319,6 +319,13 @@ class GateTest(unittest.TestCase):
                 self.assertEqual(len(rows), 1)
                 self.assertEqual(rows[0]["verdict"], "PASS")
 
+    def test_na_needs_no_quote(self) -> None:
+        with tempfile.TemporaryDirectory() as tmp:
+            db_path, opp_id = make_db(tmp)
+            with closing(db.connect(db_path)) as conn:
+                row = evals.set_evaluation(conn, opp_id, "CERT-01", "N/A")
+                self.assertEqual(row["verdict"], "N/A")
+
     def test_bad_verdict_and_unknown_code_rejected(self) -> None:
         with tempfile.TemporaryDirectory() as tmp:
             db_path, opp_id = make_db(tmp)
