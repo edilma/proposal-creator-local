@@ -249,3 +249,24 @@ loosen the gate to accept near-verbatim quotes (rejected — the non-negotiable
 is verbatim for a reason).
 Revisit when: A PDF extracts differently with fonttools installed (re-run the
 byte-compare), or pypdf makes it mandatory.
+## 018 — Quote gate: normalized exact-substring matching
+
+Decision: Verbatim testing now compares normalized forms — lowercase,
+alphanumeric characters only — and requires the normalized quote to be an
+exact substring of the normalized document. Case, whitespace, punctuation,
+and hyphens are forgiven; words and numbers must match exactly. The stored
+and displayed evidence is still the model's original quote text. This is
+normalization plus exact matching, explicitly NOT fuzzy matching: no
+similarity thresholds, edit distance, or token ratios anywhere.
+Why: Real PDF extraction inserts stray intra-word spaces ("o f", "registrat
+ion") and line-break hyphens that made true quotes fail character comparison
+(opportunity 9 FIN-01). Stripping formatting fixes false refusals while the
+exact-substring requirement keeps fabricated quotes and wrong numbers
+failing — proven by tests both ways, including a wrong-amount quote.
+Alternatives: Fuzzy/similarity matching (rejected — a threshold is a
+negotiable definition of "verbatim" and would admit near-miss fabrications);
+fixing spacing in extraction (fragile per-PDF heuristics; normalization at
+match time is simpler and total).
+Revisit when: A false accept or false refusal is ever traced to this rule —
+then re-examine with the specific quote and text, not by loosening the rule
+in general.

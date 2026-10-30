@@ -13,6 +13,30 @@ from proposal_creator.__main__ import main as cli_main
 
 DOC_TEXT = "The Contractor shall maintain SOC 2 Type II compliance.\nWork starts on March 1."
 
+# Actual extraction artifacts from RFP_26-27-04_FINAL.pdf (opportunity 9):
+# a stray intra-word space ("o f") and line breaks mid-sentence.
+ARTIFACTED_INSURANCE = (
+    "commercial general liability coverage with limits o f \n"
+    "not less than $1,000,000 per occurrence and $5,000,000 general aggregate "
+    "for bodily injury and property \n"
+    "damage; and comprehensive automobile liability coverage with limits of not "
+    "less than $1,000,000 combined \n"
+    "single limit and Contractor Pollution Liability coverage with limits not "
+    "less than $5,000,000 each occurrence \n"
+    "and aggregate."
+)
+
+# The FIN-01 quote the model returned for opportunity 9 and the old
+# whitespace-only rule refused. Clean wording, same words and numbers.
+REFUSED_FIN_QUOTE = (
+    "commercial general liability coverage with limits of not less than "
+    "$1,000,000 per occurrence and $5,000,000 general aggregate for bodily "
+    "injury and property damage; and comprehensive automobile liability "
+    "coverage with limits of not less than $1,000,000 combined single limit "
+    "and Contractor Pollution Liability coverage with limits not less than "
+    "$5,000,000 each occurrence and aggregate."
+)
+
 REQS = [
     {
         "code": "CERT-01",
@@ -113,6 +137,58 @@ class QuoteTest(unittest.TestCase):
     def test_empty_quote_fails(self) -> None:
         self.assertFalse(evals.quote_in_text("  ", DOC_TEXT))
         self.assertFalse(evals.quote_in_text("", DOC_TEXT))
+
+
+class ArtifactToleranceTest(unittest.TestCase):
+    def test_refused_fin_quote_matches_artifacted_text(self) -> None:
+        self.assertTrue(
+            evals.quote_in_text(REFUSED_FIN_QUOTE, ARTIFACTED_INSURANCE)
+        )
+
+    def test_stray_intra_word_space_ignored(self) -> None:
+        self.assertTrue(evals.quote_in_text("registration", "registrat ion"))
+        self.assertTrue(
+            evals.quote_in_text(
+                "limits of not less than", "limits o f not less than"
+            )
+        )
+
+    def test_line_break_hyphen_ignored(self) -> None:
+        self.assertTrue(
+            evals.quote_in_text(
+                "each occurrence and aggregate",
+                "each occur-\nrence and aggregate",
+            )
+        )
+
+    def test_wrong_number_still_rejected(self) -> None:
+        self.assertFalse(
+            evals.quote_in_text(
+                "limits of not less than $2,000,000 per occurrence",
+                ARTIFACTED_INSURANCE,
+            )
+        )
+
+    def test_gate_verifies_refused_quote_and_keeps_original(self) -> None:
+        with tempfile.TemporaryDirectory() as tmp:
+            db_path, opp_id = make_db(tmp, doc_text=ARTIFACTED_INSURANCE)
+            with closing(db.connect(db_path)) as conn:
+                row = evals.set_evaluation(
+                    conn, opp_id, "CERT-01", "PASS", quote=REFUSED_FIN_QUOTE
+                )
+        self.assertEqual(row["verified"], 1)
+        self.assertEqual(row["quote"], REFUSED_FIN_QUOTE)
+
+    def test_gate_rejects_wrong_number(self) -> None:
+        bad = (
+            "commercial general liability coverage with limits of not less "
+            "than $2,000,000 per occurrence"
+        )
+        with tempfile.TemporaryDirectory() as tmp:
+            db_path, opp_id = make_db(tmp, doc_text=ARTIFACTED_INSURANCE)
+            with closing(db.connect(db_path)) as conn:
+                with self.assertRaises(ValueError):
+                    evals.set_evaluation(conn, opp_id, "CERT-01", "PASS", quote=bad)
 
     def test_read_doc_text_supports_txt_and_pdf(self) -> None:
         with tempfile.TemporaryDirectory() as tmp:

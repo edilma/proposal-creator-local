@@ -5,12 +5,15 @@ a quote, and any stored quote must appear verbatim in the solicitation text
 when that text is available. Quote verification supports plain-text documents
 (.txt/.md) and text PDFs; anything else — or a PDF with no extractable text,
 such as a scan — stores the quote as unverified.
+"Verbatim" is tested on normalized forms (lowercase, alphanumeric only) so PDF
+extraction artifacts — stray spaces, line-break hyphens, punctuation noise —
+don't cause false refusals. The match itself is still an exact substring:
+only formatting is forgiven, never words or numbers.
 """
 
 from __future__ import annotations
 
 import json
-import re
 import sqlite3
 from pathlib import Path
 
@@ -22,7 +25,14 @@ READABLE_SUFFIXES = {".txt", ".md", ".markdown", ".pdf"}
 
 
 def normalize(text: str) -> str:
-    return re.sub(r"\s+", " ", text).strip()
+    """Lowercase alphanumeric only.
+
+    Strips case, whitespace, punctuation, and hyphens so extraction
+    formatting can't break the match. Words and numbers must still match
+    exactly — this is normalization for an exact substring test, not fuzzy
+    matching: no thresholds, no edit distance, no token ratios.
+    """
+    return "".join(ch for ch in text.lower() if ch.isalnum())
 
 
 def quote_in_text(quote: str | None, text: str | None) -> bool:
