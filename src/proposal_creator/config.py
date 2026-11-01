@@ -30,6 +30,7 @@ class ModelConfig:
     temperature: float
     timeout: int
     company_profile: str
+    draft_max_tokens: int = 12000
 
     def describe(self) -> str:
         """Human-readable summary that never includes the key."""
@@ -37,6 +38,7 @@ class ModelConfig:
             f"provider={self.provider} model={self.model}"
             f" base_url={self.base_url} reasoning_effort={self.reasoning_effort}"
             f" max_tokens={self.max_tokens} temperature={self.temperature}"
+            f" draft_max_tokens={self.draft_max_tokens}"
         )
 
 
@@ -84,6 +86,7 @@ def load(
         )
     try:
         max_tokens = int(get("PROPOSAL_MODEL_MAX_TOKENS", "4000"))
+        draft_max_tokens = int(get("PROPOSAL_MODEL_DRAFT_MAX_TOKENS", "12000"))
         temperature = float(get("PROPOSAL_MODEL_TEMPERATURE", "0.0"))
         timeout = int(get("PROPOSAL_MODEL_TIMEOUT", "120"))
     except ValueError as exc:
@@ -101,4 +104,5 @@ def load(
         temperature=temperature,
         timeout=timeout,
         company_profile=get("PROPOSAL_COMPANY_PROFILE", "data/company_profile.md"),
+        draft_max_tokens=draft_max_tokens,
     )

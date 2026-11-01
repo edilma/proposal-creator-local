@@ -10,6 +10,7 @@ from pathlib import Path
 from .checks import run_checks
 from .config import ConfigError, load as load_config
 from .db import DEFAULT_DB_PATH, connect, get_opportunity, seed_examples
+from .draft import build_messages as build_draft_messages, run_draft
 from .evals import (
     DEFAULT_REQUIREMENTS_PATH,
     list_checklist,
@@ -74,6 +75,13 @@ def build_parser() -> argparse.ArgumentParser:
         help="Requirement code to judge (repeatable; default: all)",
     )
     eval_p.add_argument(
+        "--dry-run", action="store_true",
+        help="Print the prompt without calling the model or writing anything",
+    )
+
+    draft_p = sub.add_parser("draft", help="Draft a response package for one record.")
+    draft_p.add_argument("id", type=int, help="Opportunity id")
+    draft_p.add_argument(
         "--dry-run", action="store_true",
         help="Print the prompt without calling the model or writing anything",
     )
@@ -214,6 +222,60 @@ def main(argv: list[str] | None = None) -> int:
             if report.get("blocker"):
                 line += f" — {report['blocker']}"
             print(line)
+        return 0
+    if args.command == "draft":
+        try:
+            model_config = load_config()
+        except ConfigError as exc:
+            print(f"error: {exc}")
+            return 1
+        print(f"model: {model_config.describe()}")
+        try:
+            profile_text = Path(model_config.company_profile).read_text(
+                encoding="utf-8"
+            )
+        except OSError as exc:
+            print(f"error: cannot read company profile: {exc}.")
+            return 1
+        with closing(connect(args.db)) as conn:
+            row = get_opportunity(conn, args.id)
+            checklist = list_checklist(conn, args.id) if row is not None else []
+            doc_text = read_doc_text(row["document_path"]) if row else None
+        if row is None:
+            print(f"No opportunity with id {args.id}.")
+            return 1
+        if not doc_text:
+            print(
+                f"error: Opportunity {args.id} has no readable document."
+                " Attach a .txt/.md/.pdf solicitation before drafting."
+            )
+            return 1
+        if not any(item["verdict"] for item in checklist):
+            print(
+                f"error: Opportunity {args.id} has no stored evaluations."
+                f" Run `evaluate {args.id}` (or `set-eval`) first."
+            )
+            return 1
+        if args.dry_run:
+            for message in build_draft_messages(profile_text, checklist, doc_text):
+                print(f"--- {message['role']} ---")
+                print(message["content"][:1500])
+            return 0
+        try:
+            with closing(connect(args.db)) as conn:
+                report = run_draft(conn, args.id, model_config, profile_text)
+        except (ValueError, ModelError) as exc:
+            print(f"error: {exc}")
+            return 1
+        needs = sum(1 for c in report["commitments"] if c["status"] != "supported")
+        print(f"draft: {report['draft_path']}")
+        print(
+            f"checklist: {report['commitments_path']}"
+            f" ({len(report['commitments'])} items, {needs} need you)"
+        )
+        usage = report.get("usage") or {}
+        if usage:
+            print("tokens: " + ", ".join(f"{k}={v}" for k, v in usage.items()))
         return 0
     if args.command == "rollup":
         try:

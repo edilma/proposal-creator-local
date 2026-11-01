@@ -72,6 +72,24 @@ uv run proposal-creator evaluate 1 --only CERT-01
 (using an opportunity whose document is a `.txt`/`.md` file, e.g. after
 dropping in `samples/demo-it-support-rfp.txt` via `intake`).
 
+### The draft (Respond)
+
+`draft <id>` writes a response-package first draft plus a commitments
+checklist in a single model call (solicitation + profile + stored
+evaluations in) and saves them as `drafts/opp-<id>-draft.md` and
+`drafts/opp-<id>-commitments.md`, shown on the opportunity's detail page.
+The draft prompt (in `docs/PROMPTS.md`, the source of truth for both
+prompts) gives the model full creative latitude on the writing but is
+strict on facts: only what the profile supports, `[NEEDS ME]` on pricing,
+staffing, technical approach, and anything uncovered, consistency with the
+stored evaluations (FAIL/UNKNOWN become `[NEEDS ME]`), sections from this
+solicitation — never a template, draft only, never submits. Each checklist
+item is flagged "supported by the company profile" or "[NEEDS ME] — confirm
+we can deliver." The call uses a larger token budget
+(`PROPOSAL_MODEL_DRAFT_MAX_TOKENS`, default 12000). Requires a readable
+document and at least one stored evaluation; `--dry-run` prints the prompt
+without calling or writing; `stub` writes placeholders for free.
+
 First `uv sync` downloads the `hatchling` build backend and the one runtime
 dependency (`pypdf`) from PyPI (one-time, free); after that everything is local.
 
@@ -87,15 +105,19 @@ uv run python -m unittest discover -s tests -v
 - `src/proposal_creator/checks.py` — deterministic checks (deadline, opening, document)
 - `src/proposal_creator/web.py` — loopback-only list + detail pages (stdlib `http.server`)
 - `src/proposal_creator/__main__.py` — CLI (`seed` / `serve` / `check` /
-  `intake` / `set-eval` / `evals` / `reqs` / `evaluate` / `rollup`)
+  `intake` / `set-eval` / `evals` / `reqs` / `evaluate` / `rollup` / `draft`)
 - `src/proposal_creator/intake.py` — drop-folder scanning
 - `src/proposal_creator/evals.py` — requirements, evaluations, quote gate
 - `src/proposal_creator/config.py` — model settings from `.env` / environment
 - `src/proposal_creator/model.py` — OpenAI-compatible client (stdlib only)
-- `src/proposal_creator/evaluate.py` — prompt + one-call judging + gate writes
+- `src/proposal_creator/evaluate.py` — one-call judging + gate writes
 - `src/proposal_creator/rollup.py` — overall verdict from stored evaluations
+- `src/proposal_creator/draft.py` — one-call draft + checklist, saved to `drafts/`
+- `src/proposal_creator/prompts.py` — loads system prompts verbatim
+- `docs/PROMPTS.md` — source of truth for both system prompts
 - `data/requirements_gov.json` — the government checklist (data, not code)
 - `samples/demo-it-support-rfp.txt` — tiny fictitious solicitation for trials
 - `.env.example` — model variables to copy into `.env` (gitignored)
-- `tests/` — stdlib `unittest` suite (DB + pages + intake + evals + brain)
+- `tests/` — stdlib `unittest` suite (DB + pages + intake + evals + brain + draft)
 - `data/` — company profile; the SQLite file lives here too (gitignored)
+- `drafts/` — generated drafts + checklists (gitignored, only `.gitkeep` committed)

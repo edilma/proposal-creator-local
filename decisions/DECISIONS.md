@@ -293,3 +293,37 @@ corrections would leave stale verdicts or force paid re-runs); NULL vs empty
 blocker for CAN BID (chose "" per the spec's "blocker empty").
 Revisit when: The verdict needs more states (e.g. BID WITH RISK), weighted
 requirements, or deadline-proximity (not just passed) as an input.
+
+## 020 - Draft step: one call, PROMPTS.md prompts, checklist + files
+
+Decision: `draft <id>` generates a response-package draft plus a commitments
+checklist in a single model call (solicitation + company profile + stored
+evaluations in; draft_markdown + commitments JSON out) and saves them as
+drafts/opp-<id>-draft.md and drafts/opp-<id>-commitments.md, shown on the
+opportunity detail page. docs/PROMPTS.md is now the source of truth for both
+system prompts, loaded verbatim by prompts.get_prompt() (the eligibility
+prompt moved there byte-identical); each prompt is the fenced block under its
+## heading. The draft prompt instructs: full creative latitude on the writing
+(structure, tone, wording, sections, formatting); strict on facts (only what
+the profile supports, never invent); [NEEDS ME] on pricing, specific staffing,
+the detailed technical approach, and anything uncovered; consistency with the
+stored evaluations (FAIL/UNKNOWN - e.g. opp 9 CERT-01 - become [NEEDS ME]);
+sections from THIS solicitation, not a generic template; DRAFT only, never
+submits. Each checklist entry is flagged "supported by the company profile" or
+"[NEEDS ME] - confirm we can deliver"; unknown statuses fail closed to
+needs_me. The call reuses the model client with a larger budget
+(PROPOSAL_MODEL_DRAFT_MAX_TOKENS, default 12000). Requires a readable document
+and at least one stored evaluation; stub writes marked placeholders for free;
+--dry-run prints the prompt and writes nothing. drafts/ is gitignored like
+drop/ (only .gitkeep committed).
+Why: One call bounds cost; the checklist is the over-promising check the draft
+needs since its prose is free-form; prompts in one reviewed file keep the
+honesty rules visible and diffable instead of buried in code; fail-closed
+statuses keep a malformed model reply from ever looking supported.
+Alternatives: Separate calls for draft and checklist (2x cost, and they could
+disagree); a rigid draft template (rejected - the solicitation dictates the
+shape); storing drafts in the DB (rejected - Markdown files are the artifact
+the human edits and keeps).
+Revisit when: Drafts need versioning per opportunity (then date-stamp the
+filenames or add a drafts table), or one call's output outgrows the budget
+(then split draft and checklist calls).

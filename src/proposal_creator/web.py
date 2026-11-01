@@ -14,6 +14,7 @@ from pathlib import Path
 
 from .checks import run_checks, summarize
 from .db import DEFAULT_DB_PATH, connect, get_opportunity, init_db
+from .draft import DEFAULT_DRAFTS_DIR, draft_paths
 from .evals import list_checklist
 
 HOST = "127.0.0.1"
@@ -63,6 +64,8 @@ dd { margin: 0.2rem 0 0 0; }
 .warn { color: #a60; font-weight: bold; }
 .info { color: #06a; }
 .ok { color: #080; }
+pre { white-space: pre-wrap; word-wrap: break-word; background: #fafafa;
+  padding: 0.6rem; border: 1px solid #eee; }
 """
 
 
@@ -104,7 +107,42 @@ def render_page(rows: list[sqlite3.Row]) -> str:
 """
 
 
-def render_detail(row: sqlite3.Row, checklist: list[sqlite3.Row]) -> str:
+def _render_draft_section(opp_id: int, drafts_dir: Path | str | None) -> str:
+    base = Path(drafts_dir) if drafts_dir is not None else DEFAULT_DRAFTS_DIR
+    draft_path, comm_path = draft_paths(base, opp_id)
+
+    def read(path: Path) -> str | None:
+        try:
+            return path.read_text(encoding="utf-8")
+        except OSError:
+            return None
+
+    draft_text, comm_text = read(draft_path), read(comm_path)
+    if draft_text is None and comm_text is None:
+        return (
+            "<h2>Draft</h2>"
+            f"<p>No draft yet. Run <code>proposal-creator draft {opp_id}</code>.</p>"
+        )
+    parts = ["<h2>Draft</h2>", "<p>A draft only: a human reviews and submits.</p>"]
+    if draft_text is not None:
+        parts.append(
+            f"<h3>Response draft</h3><p><code>{_text(draft_path)}</code></p>"
+            f"<pre>{_text(draft_text)}</pre>"
+        )
+    if comm_text is not None:
+        parts.append(
+            "<h3>Commitments checklist</h3>"
+            f"<p><code>{_text(comm_path)}</code></p>"
+            f"<pre>{_text(comm_text)}</pre>"
+        )
+    return "".join(parts)
+
+
+def render_detail(
+    row: sqlite3.Row,
+    checklist: list[sqlite3.Row],
+    drafts_dir: Path | str | None = None,
+) -> str:
     fields = "".join(
         f"<dt>{label}</dt><dd>{_text(row[key])}</dd>" for key, label in DETAIL_FIELDS
     )
@@ -125,6 +163,7 @@ def render_detail(row: sqlite3.Row, checklist: list[sqlite3.Row]) -> str:
         f"<td>{evidence(item)}</td></tr>"
         for item in checklist
     )
+    draft_section = _render_draft_section(row["id"], drafts_dir)
     return f"""<!doctype html>
 <html lang="en">
 <head><meta charset="utf-8"><title>{_text(row["title"])}</title>
@@ -140,6 +179,7 @@ def render_detail(row: sqlite3.Row, checklist: list[sqlite3.Row]) -> str:
 <table><thead><tr><th>Code</th><th>Requirement</th><th>Verdict</th>
 <th>Quote</th><th>Evidence</th></tr></thead>
 <tbody>{evals}</tbody></table>
+{draft_section}
 </body>
 </html>
 """

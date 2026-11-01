@@ -11,3 +11,5 @@ secrets/
 __pycache__/
 drop/*
 !drop/.gitkeep
+drafts/*
+!drafts/.gitkeep
