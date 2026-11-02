@@ -7,6 +7,8 @@ import sqlite3
 from contextlib import closing
 from pathlib import Path
 
+from .answers import ANSWERS_TABLE_SQL
+
 DEFAULT_DB_PATH = Path(os.environ.get("PROPOSAL_DB", "data/opportunities.db"))
 
 SCHEMA = """
@@ -49,6 +51,7 @@ CREATE TABLE IF NOT EXISTS evaluations (
     UNIQUE (opportunity_id, requirement_code)
 );
 """
+SCHEMA += ANSWERS_TABLE_SQL
 
 SEED_EXAMPLES = [
     {

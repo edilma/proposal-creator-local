@@ -327,3 +327,40 @@ the human edits and keeps).
 Revisit when: Drafts need versioning per opportunity (then date-stamp the
 filenames or add a drafts table), or one call's output outgrows the budget
 (then split draft and checklist calls).
+
+## 021 - Answer library: reusable answers with freshness flags
+
+Decision: A new `answers` table (label UNIQUE case-insensitively, answer_text,
+last_confirmed, optional valid_until, status active/retired) holds
+human-written reusable answers, separate from the company profile.
+`answers.py` owns the store: save_answer upserts by label (one answer per
+topic; re-saving re-confirms to today and keeps existing valid-until/status),
+update/retire edit by id, and ensure_schema migrates older DB files on first
+touch. Freshness: expired when today is past valid-until (the day itself
+still counts, mirroring the deadline rule); stale when last-confirmed is
+older than PROPOSAL_ANSWER_STALE_DAYS (default 90 days); expired wins when
+both apply; unknown age flags stale, never silent. The /answers page lists
+every answer with add, edit in place (inputs associated to per-row forms via
+form=, since a form may not wrap table cells), and retire, flagging
+EXPIRED/STALE visibly; each opportunity page also saves label+text with no
+model call. Drafts feed the ACTIVE library to the model with freshness
+flags; the Draft prompt (docs/PROMPTS.md, still the source of truth) says
+reuse a saved answer wherever it fits a required section of THIS
+solicitation, mark expired/stale reuse "confirm still current", and [NEEDS
+ME] where neither profile nor library covers a section. The commitments
+checklist is three-way: "supported by the company profile" / "from your
+saved answers" (plus "confirm still current" for library_stale) /
+"[NEEDS ME] -- confirm we can deliver"; unknown statuses still fail closed
+to needs_me. POST handling stays in stdlib http.server (no framework).
+Why: Approved wording should compound across bids instead of being
+re-typed; freshness flags keep reuse honest without silently trusting old
+text. One-per-label upsert keeps the library deduplicated by construction.
+Alternatives: Model-suggested answers auto-saved from drafts (rejected --
+only the human's own saved text is trusted for reuse); fuzzy topic matching
+at draft time (rejected -- the whole active library fits the prompt, so the
+model sees all of it); Flask for the new forms (rejected -- four small POST
+routes don't justify a dependency; revisit if the page grows auth or
+richer interactions).
+Revisit when: The library outgrows one prompt block (then retrieve per
+section), answers need version history, or staleness needs per-topic
+thresholds.

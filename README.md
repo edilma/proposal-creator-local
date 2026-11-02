@@ -75,20 +75,35 @@ dropping in `samples/demo-it-support-rfp.txt` via `intake`).
 ### The draft (Respond)
 
 `draft <id>` writes a response-package first draft plus a commitments
-checklist in a single model call (solicitation + profile + stored
-evaluations in) and saves them as `drafts/opp-<id>-draft.md` and
+checklist in a single model call (solicitation + profile + saved answers +
+stored evaluations in) and saves them as `drafts/opp-<id>-draft.md` and
 `drafts/opp-<id>-commitments.md`, shown on the opportunity's detail page.
 The draft prompt (in `docs/PROMPTS.md`, the source of truth for both
 prompts) gives the model full creative latitude on the writing but is
-strict on facts: only what the profile supports, `[NEEDS ME]` on pricing,
-staffing, technical approach, and anything uncovered, consistency with the
-stored evaluations (FAIL/UNKNOWN become `[NEEDS ME]`), sections from this
-solicitation — never a template, draft only, never submits. Each checklist
-item is flagged "supported by the company profile" or "[NEEDS ME] — confirm
-we can deliver." The call uses a larger token budget
+strict on facts: only what the profile or the saved answers support,
+`[NEEDS ME]` on pricing, staffing, technical approach, and anything
+uncovered, reuse of a saved answer wherever it fits a required section of
+this solicitation, consistency with the stored evaluations (FAIL/UNKNOWN
+become `[NEEDS ME]`), sections from this solicitation — never a template,
+draft only, never submits. Each checklist item is flagged "supported by the
+company profile", "from your saved answers", or "[NEEDS ME] — confirm we
+can deliver." The call uses a larger token budget
 (`PROPOSAL_MODEL_DRAFT_MAX_TOKENS`, default 12000). Requires a readable
 document and at least one stored evaluation; `--dry-run` prints the prompt
 without calling or writing; `stub` writes placeholders for free.
+
+### The answer library
+
+Reusable answers you wrote and approved, stored separately from the company
+profile and fed to every draft. Each has a label/topic, the answer text, a
+last-confirmed date, an optional valid-until date, and active/retired
+status — one answer per label (saving a label that exists edits it).
+Manage it at `/answers` (add, edit in place, retire), or save an answer
+from any opportunity's detail page (label + text, stored as-is, no model
+call). Answers past valid-until show EXPIRED, and answers last confirmed
+more than `PROPOSAL_ANSWER_STALE_DAYS` ago (default 90) show STALE; drafts
+still reuse them but mark them "confirm still current", and the checklist
+flags them "from your saved answers — confirm still current."
 
 First `uv sync` downloads the `hatchling` build backend and the one runtime
 dependency (`pypdf`) from PyPI (one-time, free); after that everything is local.
@@ -113,6 +128,7 @@ uv run python -m unittest discover -s tests -v
 - `src/proposal_creator/evaluate.py` — one-call judging + gate writes
 - `src/proposal_creator/rollup.py` — overall verdict from stored evaluations
 - `src/proposal_creator/draft.py` — one-call draft + checklist, saved to `drafts/`
+- `src/proposal_creator/answers.py` — answer library store + freshness flags
 - `src/proposal_creator/prompts.py` — loads system prompts verbatim
 - `docs/PROMPTS.md` — source of truth for both system prompts
 - `data/requirements_gov.json` — the government checklist (data, not code)

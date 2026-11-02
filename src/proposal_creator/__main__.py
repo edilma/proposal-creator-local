@@ -10,7 +10,11 @@ from pathlib import Path
 from .checks import run_checks
 from .config import ConfigError, load as load_config
 from .db import DEFAULT_DB_PATH, connect, get_opportunity, seed_examples
-from .draft import build_messages as build_draft_messages, run_draft
+from .draft import (
+    build_messages as build_draft_messages,
+    collect_library,
+    run_draft,
+)
 from .evals import (
     DEFAULT_REQUIREMENTS_PATH,
     list_checklist,
@@ -240,6 +244,7 @@ def main(argv: list[str] | None = None) -> int:
         with closing(connect(args.db)) as conn:
             row = get_opportunity(conn, args.id)
             checklist = list_checklist(conn, args.id) if row is not None else []
+            library = collect_library(conn) if row is not None else []
             doc_text = read_doc_text(row["document_path"]) if row else None
         if row is None:
             print(f"No opportunity with id {args.id}.")
@@ -257,7 +262,9 @@ def main(argv: list[str] | None = None) -> int:
             )
             return 1
         if args.dry_run:
-            for message in build_draft_messages(profile_text, checklist, doc_text):
+            for message in build_draft_messages(
+                profile_text, checklist, doc_text, library
+            ):
                 print(f"--- {message['role']} ---")
                 print(message["content"][:1500])
             return 0
@@ -267,7 +274,11 @@ def main(argv: list[str] | None = None) -> int:
         except (ValueError, ModelError) as exc:
             print(f"error: {exc}")
             return 1
-        needs = sum(1 for c in report["commitments"] if c["status"] != "supported")
+        needs = sum(
+            1
+            for c in report["commitments"]
+            if c["status"] in ("needs_me", "library_stale")
+        )
         print(f"draft: {report['draft_path']}")
         print(
             f"checklist: {report['commitments_path']}"
