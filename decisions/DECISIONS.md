@@ -364,3 +364,42 @@ richer interactions).
 Revisit when: The library outgrows one prompt block (then retrieve per
 section), answers need version history, or staleness needs per-topic
 thresholds.
+
+## 022 - Email intake core: Gmail read-only, notices, folders, documents
+
+Decision: Notices arrive via the Gmail REST API (stdlib urllib, installed-app
+OAuth, gmail.readonly scope; refresh token in gitignored
+data/gmail_token.json; client id/secret in .env). `notices.py` parses the two
+senders only -- MFMP single-part HTML by <b> label, OpenGov multipart (summary
+lives in the HTML part only) -- shaped strictly by samples/*.eml; anything
+else, and any non-new-notice subject (addendums parked per owner), is skipped
+and logged. Matching: stored portal/agency number first, then the digit core
+of the agency number printed in an unnumbered opportunity's documents
+("DOR RFP #26/27-04", "(RFP) 26/27-04", "RFP_26-27-04" all reduce to 262704);
+zero hits create a stub, one hit backfills empty fields only (never
+overwrites), several hits report ambiguous once and touch nothing. Dedup is
+the message id (content-hash backstop) in intake_seen. Documents live in a
+documents table plus drop/opp-<id>/ folders (owner's suggestion); the legacy
+document_path is adopted on first scan; a document is confirmed when the
+agency digit core appears in its text. Decide/Draft/quote-gate now read the
+combined text of all documents via evals.read_opp_text -- the only touch to
+the done areas, behavior-identical for single-doc records (gate test proves a
+quote in the second doc verifies). OpenGov tracking links resolve to the
+portal URL + project id at live intake (kept as-is when unresolvable); the
+view-vs-subscription link distinction is UNVERIFIED (sample links removed)
+and must be confirmed against a real email. Portal document download is NOT
+built yet: probes show OpenGov 403 to scripts and MFMP returning a JS shell,
+while both open in the owner's browser -- endpoint discovery via the owner's
+devtools comes first, manual drop stays the fallback.
+Why: Read-only OAuth enforces the no-send/no-move guardrails at the
+credential level; verbatim-stored numbers with normalized matching absorb the
+spacing/slash/dash variants seen in the wild; folders match the owner's
+mental model and keep multi-doc solicitations together.
+Alternatives: Auto-forwarding to an intake mailbox (rejected -- same API setup
+plus new message ids and fragile sender filtering); IMAP + app password
+(rejected -- Workspace-dependent, less auditable than OAuth); fuzzy title
+matching (rejected -- numbers or nothing, ambiguity goes to the human).
+Revisit when: Addendums return (need real samples + the pursuing rule:
+winnable stays live, fixable NEEDS INFO stays live); portal endpoints are
+identified (then build autofetch with graceful fallback); SAM.gov API work
+starts (separate piece, same notices/matching core).

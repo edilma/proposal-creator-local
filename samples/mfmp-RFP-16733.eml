@@ -1,0 +1,90 @@
+Delivered-To: clark.kent@browardtechsystems.example
+Received: by 2002:a05:6376:e014:b0:5f5:4429:864e with SMTP id d20csp824446gds;
+        Tue, 27 Oct 2026 13:14:37 -0700 (PDT)
+X-Received: by 2002:a05:620a:2913:b0:93f:1d5:9973 with SMTP id af79cd13be357-94408d42480mr3982285a.73.1793132077126;
+        Tue, 27 Oct 2026 13:14:37 -0700 (PDT)
+ARC-Authentication-Results: i=1; mx.google.com;
+       dkim=pass header.i=@dms.myflorida.com header.s=dms-myflorida-com-20240207;
+       dkim=pass header.i=@lfi1.rp.email.oci.oraclegovcloud.com header.s=prod-lfi-20201019;
+       spf=pass (google.com: domain of bounces+clark.kent=browardtechsystems.example@lfi1.rp.email.oci.oraclegovcloud.com designates 155.248.12.122 as permitted sender) smtp.mailfrom="bounces+clark.kent=browardtechsystems.example@lfi1.rp.email.oci.oraclegovcloud.com";
+       dmarc=pass (p=NONE sp=NONE dis=NONE) header.from=dms.myflorida.com
+Return-Path: <bounces+clark.kent=browardtechsystems.example@lfi1.rp.email.oci.oraclegovcloud.com>
+Received: from aee248ab122.lfi1.email.oci.oraclegovcloud.com (aee248ab122.lfi1.email.oci.oraclegovcloud.com. [155.248.12.122])
+        by mx.google.com with ESMTPS id af79cd13be357-940f0ad512csi923270785a.486.2026.10.27.13.14.36
+        for <clark.kent@browardtechsystems.example>
+        (version=TLS1_3 cipher=TLS_AES_128_GCM_SHA256 bits=128/128);
+        Tue, 27 Oct 2026 13:14:37 -0700 (PDT)
+Received-SPF: pass (google.com: domain of bounces+clark.kent=browardtechsystems.example@lfi1.rp.email.oci.oraclegovcloud.com designates 155.248.12.122 as permitted sender) client-ip=155.248.12.122;
+Authentication-Results: mx.google.com;
+       dkim=pass header.i=@dms.myflorida.com header.s=dms-myflorida-com-20240207;
+       dkim=pass header.i=@lfi1.rp.email.oci.oraclegovcloud.com header.s=prod-lfi-20201019;
+       spf=pass (google.com: domain of bounces+clark.kent=browardtechsystems.example@lfi1.rp.email.oci.oraclegovcloud.com designates 155.248.12.122 as permitted sender) smtp.mailfrom="bounces+clark.kent=browardtechsystems.example@lfi1.rp.email.oci.oraclegovcloud.com";
+       dmarc=pass (p=NONE sp=NONE dis=NONE) header.from=dms.myflorida.com
+Received: by omta-ad1-fd1-1101-us-langley-1.omtaad1.vcndplfi.oraclevcn.com
+ (Oracle Communications Messaging Server 8.1.0.1.20261001 64bit (built Oct  1
+ 2026))
+ with ESMTPS id <0TNL0E5OB1KC6P30@omta-ad1-fd1-1101-us-langley-1.omtaad1.vcndplfi.oraclevcn.com>
+ for clark.kent@browardtechsystems.example; Tue, 27 Oct 2026 20:14:36 +0000 (GMT)
+List-Unsubscribe: <https://unsubscribe.example/REMOVED-FOR-SAMPLE>
+List-Unsubscribe-Post: List-Unsubscribe=One-Click
+Date: Tue, 27 Oct 2026 16:11:45 -0400 (EDT)
+From: MFMP.NoReply@dms.myflorida.com
+To: clark.kent@browardtechsystems.example
+Message-id: <1894076099.2315.1793131905976@ashprdl01vip.ngmfmp.com>
+Subject: Advertisement Posted - RFP-16733
+MIME-version: 1.0
+Content-type: text/html; charset=us-ascii
+Content-transfer-encoding: 7bit
+
+<html>
+<head>
+<style>
+p + ol {
+    margin-top: -10px;
+}
+</style>
+</head>
+<body>
+<font size="2" face="Verdana">
+<p>To: Clark Kent
+<p>A bid advertisement was posted to the MyFloridaMarketPlace (MFMP) Vendor Information Portal (VIP) for goods or services matching your company's selected commodity codes(s). See below for additional information:</p>
+
+<p style="margin-left: 40px"><b>Organization:</b> Department of Revenue (REV)
+<br><b>Advertisement Number:</b> <a href="https://vendor.myfloridamarketplace.com/search/bids/detail/16733">RFP-16733</a>
+<br><b>Agency Advertisement Number:</b> DOR RFP  #26/27-04
+<br><b>Advertisement Type:</b> Request for Proposals
+<br><b>Title:</b> Random Moment Sampling
+<br><b>Commodity Code:</b> 43231516: Audit software
+<br><b>Open Date:</b> Aug 20, 2026
+<br><b>Close Date:</b> Nov 20, 2026
+<br><b>Agency Contact:</b> Jimmy Olsen
+<br><b>Phone:</b> (850) 555-0142
+<br><b>Address:</b> Building 2, Suite 1600
+<br><b>Email:</b> jimmy.olsen@floridarevenue.example
+</p>
+
+<p>You may view additional information by viewing this advertisement directly in <a href="https://vendor.myfloridamarketplace.com/search/bids/detail/16733">VIP</a>. Any questions related to this advertisement should be directed to the Agency Contact listed on the advertisement. To 'Favorite' or declare your 'Intent to Participate' to  this advertisement, please log in to <a href="https://vendor.myfloridamarketplace.com/login">VIP</a>, and select 'Advertisements' from the Top Menu to search for  this advertisement.</p>
+
+<p>Please note, you are receiving this notification because you are listed as you company's Solicitation Contact and have opted to receive Electronic Solicitation Notifications from MFMP. You may opt out of electronic Solicitation Notifications or update your Solicitation Contact info by following the steps below.</p>
+<ol>
+<li>Log into <a href="https://vendor.myfloridamarketplace.com/login">VIP</a>.</li>
+<li>Navigate to My Profile by clicking on the profile icon in the upper right-hand corner and selecting My Profile.</li>
+<li>Select the Commodity Codes tab.</li>
+<li>Locate the Solicitations sections to perform the desired updates.</li>
+</ol>
+
+<p>For questions about MFMP, contact the MFMP Help Desk at 866-352-3776, Monday through Friday, 8:00 a.m. to 6:00 p.m. ET or at <a href="mailto:vendorhelp@myfloridamarketplace.com">vendorhelp@myfloridamarketplace.com</a>.</p>
+</font>
+</body>
+</html>
+<html>
+<body>
+<br><b>MyFloridaMarketPlace Team</b>
+<br><i>Division of State Purchasing, MyFloridaMarketPlace</i>
+<br>866-352-3776 (toll-free)
+<br>Florida Department of Management Services
+<br>We Serve Those Who Serve Florida
+<br><img src="https://vendor.myfloridamarketplace.com//cms/assets/imgs/mfmpLogo.png" width="324" height="124">
+<br><a href="https://www.dms.myflorida.com/"><img src="https://vendor.myfloridamarketplace.com//cms/assets/imgs/dms.png"></a><a href="https://twitter.com/FloridaDMS"><img src="https://www.dms.myflorida.com/design/dms2013/images/twitter.png" width="30" height="30"></a><a href="https://www.facebook.com/FLDMS"><img src="https://www.dms.myflorida.com/design/dms2013/images/facebook.png" width="30" height="30"></a><a href="https://www.linkedin.com/company/florida-department-of-management-services"><img src="https://www.dms.myflorida.com/design/dms2013/images/linkedin.png" width="30" height="30"></a>
+</body>
+</html>

@@ -3,13 +3,20 @@
 from __future__ import annotations
 
 import argparse
+import sqlite3
 import sys
 from contextlib import closing
 from pathlib import Path
 
 from .checks import run_checks
 from .config import ConfigError, load as load_config
-from .db import DEFAULT_DB_PATH, connect, get_opportunity, seed_examples
+from .db import (
+    DEFAULT_DB_PATH,
+    connect,
+    get_opportunity,
+    init_db,
+    seed_examples,
+)
 from .draft import (
     build_messages as build_draft_messages,
     collect_library,
@@ -20,11 +27,16 @@ from .evals import (
     list_checklist,
     list_requirements,
     load_requirements,
-    read_doc_text,
+    read_opp_text,
     set_evaluation,
 )
 from .evaluate import build_messages, run_evaluate
-from .intake import DEFAULT_DROP_DIR, scan_drop
+from .intake import (
+    DEFAULT_DROP_DIR,
+    confirm_documents,
+    scan_drop,
+    scan_folders,
+)
 from .model import ModelError
 from .rollup import apply_rollup
 from .web import HOST, PORT, serve
@@ -51,6 +63,26 @@ def build_parser() -> argparse.ArgumentParser:
     intake_p = sub.add_parser("intake", help="Scan the drop folder for new files.")
     intake_p.add_argument(
         "--drop", default=str(DEFAULT_DROP_DIR), help="Folder to scan (default: drop)"
+    )
+
+    email_p = sub.add_parser(
+        "intake-email", help="Fetch notice emails and match them to opportunities."
+    )
+    email_p.add_argument(
+        "--auth", action="store_true",
+        help="Do the Gmail consent flow and store the token, then stop",
+    )
+    email_p.add_argument(
+        "--from-file", default=None, metavar="EML",
+        help="Parse a local .eml file instead of Gmail (offline; links unresolved)",
+    )
+    email_p.add_argument(
+        "--dry-run", action="store_true",
+        help="List and parse without writing anything",
+    )
+    email_p.add_argument(
+        "--query", default=None,
+        help="Gmail search query (default: both notice senders)",
     )
 
     set_p = sub.add_parser("set-eval", help="Record one checklist evaluation.")
@@ -120,9 +152,108 @@ def main(argv: list[str] | None = None) -> int:
         return 0
     if args.command == "intake":
         added, skipped = scan_drop(args.drop, args.db)
+        attached, folder_skipped = scan_folders(args.drop, args.db)
         for stub in added:
             print(f"added: {stub['document_path']} (title: {stub['title']})")
-        print(f"intake complete: added {len(added)}, skipped {len(skipped)}.")
+        for doc in attached:
+            print(f"attached: {doc['path']} (opp {doc['opportunity_id']})")
+        print(
+            f"intake complete: added {len(added)},"
+            f" attached {len(attached)},"
+            f" skipped {len(skipped) + len(folder_skipped)}."
+        )
+        return 0
+    if args.command == "intake-email":
+        from . import gmail as gmail_api
+        from . import notices
+
+        if args.auth:
+            try:
+                gmail_config = gmail_api.load_config()
+            except gmail_api.GmailError as exc:
+                print(f"error: {exc}")
+                return 1
+            import secrets
+
+            state = secrets.token_urlsafe(16)
+            try:
+                server = gmail_api.start_callback_server(0)
+            except OSError as exc:
+                print(f"error: cannot bind the loopback listener: {exc}.")
+                return 1
+            port = server.server_address[1]
+            print("Open this URL in your browser and allow read-only access:")
+            print(gmail_api.auth_url(gmail_config, port, state))
+            print("Waiting for the browser callback (5 minutes)...")
+            try:
+                code = gmail_api.wait_for_code(server, state)
+                refresh = gmail_api.exchange_code(gmail_config, code, port)
+            except gmail_api.GmailError as exc:
+                print(f"error: {exc}")
+                return 1
+            path = gmail_api.save_refresh_token(
+                gmail_config.token_path, refresh
+            )
+            print(f"Signed in. Token stored at {path} (gitignored).")
+            return 0
+        if args.from_file:
+            try:
+                raws = [Path(args.from_file).read_bytes()]
+            except OSError as exc:
+                print(f"error: cannot read {args.from_file}: {exc}.")
+                return 1
+
+            def fetch(_token: str) -> list[bytes]:
+                return raws
+
+            token = ""
+        else:
+            try:
+                gmail_config = gmail_api.load_config()
+                token = gmail_api.fresh_access_token(gmail_config)
+                query = args.query or gmail_api.DEFAULT_QUERY
+                ids = gmail_api.list_message_ids(token, query)
+            except gmail_api.GmailError as exc:
+                print(f"error: {exc}")
+                return 1
+            print(f"found {len(ids)} message(s).")
+
+            def fetch(access_token: str) -> list[bytes]:
+                return [
+                    gmail_api.get_raw(access_token, gmail_id) for gmail_id in ids
+                ]
+
+        try:
+            messages = fetch(token)
+        except gmail_api.GmailError as exc:
+            print(f"error: {exc}")
+            return 1
+        counts: dict = {}
+        init_db(args.db)
+        with closing(connect(args.db)) as conn:
+            for raw in messages:
+                notice = notices.parse_eml(raw)
+                if args.from_file is None:
+                    notices.resolve_notice_link(notice)
+                label = notice.get("subject") or "(no subject)"
+                if args.dry_run:
+                    print(f"would process [{notice['source']}] {label}")
+                    continue
+                try:
+                    result, opp_id = notices.apply_notice(conn, notice)
+                    if result in ("matched", "created") and opp_id is not None:
+                        confirm_documents(conn, opp_id)
+                except (ValueError, sqlite3.Error) as exc:
+                    print(f"error [{notice['source']}] {label}: {exc}")
+                    continue
+                counts[result] = counts.get(result, 0) + 1
+                where = f" (opp {opp_id})" if opp_id is not None else ""
+                print(f"{result}: {label}{where}")
+        if not args.dry_run:
+            summary = ", ".join(
+                f"{count} {result}" for result, count in sorted(counts.items())
+            )
+            print(f"intake-email complete: {summary or 'nothing'}.")
         return 0
     if args.command == "set-eval":
         try:
@@ -183,7 +314,7 @@ def main(argv: list[str] | None = None) -> int:
                 if row is not None
                 else []
             )
-            doc_text = read_doc_text(row["document_path"]) if row else None
+            doc_text = read_opp_text(conn, args.id) if row else None
         if row is None:
             print(f"No opportunity with id {args.id}.")
             return 1
@@ -245,7 +376,7 @@ def main(argv: list[str] | None = None) -> int:
             row = get_opportunity(conn, args.id)
             checklist = list_checklist(conn, args.id) if row is not None else []
             library = collect_library(conn) if row is not None else []
-            doc_text = read_doc_text(row["document_path"]) if row else None
+            doc_text = read_opp_text(conn, args.id) if row else None
         if row is None:
             print(f"No opportunity with id {args.id}.")
             return 1

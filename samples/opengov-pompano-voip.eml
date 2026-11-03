@@ -1,0 +1,151 @@
+Delivered-To: clark.kent@browardtechsystems.example
+Received: by 2002:a05:7108:4a04:b0:58e:1f8:65c1 with SMTP id dt4csp11359753gdb;
+        Thu, 22 Oct 2026 14:54:16 -0700 (PDT)
+X-Received: by 2002:a17:902:ccd0:b0:2e7:67ad:8e9d with SMTP id d9443c01a7336-2ea7c2fb838mr3924895ad.30.1792706056311;
+        Thu, 22 Oct 2026 14:54:16 -0700 (PDT)
+ARC-Authentication-Results: i=1; mx.google.com;
+       dkim=pass header.i=@opengov.com header.s=pro;
+       spf=pass (google.com: domain of bounces+2690672-267b-clark.kent=browardtechsystems.example@em3495.opengov.com designates 149.72.209.186 as permitted sender) smtp.mailfrom="bounces+2690672-267b-clark.kent=browardtechsystems.example@em3495.opengov.com";
+       dmarc=pass (p=QUARANTINE sp=QUARANTINE dis=NONE) header.from=opengov.com
+Return-Path: <bounces+2690672-267b-clark.kent=browardtechsystems.example@em3495.opengov.com>
+Received: from o1.ptr8926.opengov.com (o1.ptr8926.opengov.com. [149.72.209.186])
+        by mx.google.com with ESMTPS id d9443c01a7336-2ea7b53c2a6si14049745ad.190.2026.10.22.14.54.16
+        for <clark.kent@browardtechsystems.example>
+        (version=TLS1_3 cipher=TLS_AES_128_GCM_SHA256 bits=128/128);
+        Thu, 22 Oct 2026 14:54:16 -0700 (PDT)
+Received-SPF: pass (google.com: domain of bounces+2690672-267b-clark.kent=browardtechsystems.example@em3495.opengov.com designates 149.72.209.186 as permitted sender) client-ip=149.72.209.186;
+Authentication-Results: mx.google.com;
+       dkim=pass header.i=@opengov.com header.s=pro;
+       spf=pass (google.com: domain of bounces+2690672-267b-clark.kent=browardtechsystems.example@em3495.opengov.com designates 149.72.209.186 as permitted sender) smtp.mailfrom="bounces+2690672-267b-clark.kent=browardtechsystems.example@em3495.opengov.com";
+       dmarc=pass (p=QUARANTINE sp=QUARANTINE dis=NONE) header.from=opengov.com
+Content-Type: multipart/alternative; boundary=0d3137861016edcfb384127e75a074ce5f89a1522657bf93a4a54b0bdb30
+Date: Thu, 22 Oct 2026 21:54:15 +0000 (UTC)
+From: OpenGov Procurement Notifications
+	<procurement-notifications@opengov.com>
+Mime-Version: 1.0
+Message-ID: <zgcCYUSfQYu43GaLdyIpbg@geopod-ismtpd-68>
+Subject: New Opportunity Issued by City of Pompano Beach, FL: VOIP Phone
+ System
+To: clark.kent@browardtechsystems.example
+
+--0d3137861016edcfb384127e75a074ce5f89a1522657bf93a4a54b0bdb30
+Content-Type: text/plain; charset="us-ascii"
+Content-Transfer-Encoding: quoted-printable
+Mime-Version: 1.0
+
+Hi Clark,
+
+City of Pompano Beach, FL has just released the following opportunity:
+VOIP Phone System
+
+View Opportunity:
+https://url856.opengov.com/ls/click?upn=3DTRACKING-LINK-REMOVED-FOR-SAMPLE
+
+
+
+
+You are receiving this email because you requested to be notified any time =
+a new opportunity is issued by City of Pompano Beach, FL.
+You can adjust your subscription settings from your OpenGov Procurement acc=
+ount or clicking the link below:
+https://url856.opengov.com/ls/click?upn=3DSUBSCRIPTION-LINK-REMOVED-FOR-SAM=
+PLE
+--0d3137861016edcfb384127e75a074ce5f89a1522657bf93a4a54b0bdb30
+Content-Type: text/html; charset="us-ascii"
+Content-Transfer-Encoding: quoted-printable
+Mime-Version: 1.0
+
+<!DOCTYPE html PUBLIC "-//W3C//DTD XHTML 1.0 Transitional//EN" "http://www.=
+w3.org/TR/xhtml1/DTD/xhtml1-transitional.dtd"><html style=3D"font-family: '=
+Helvetica Neue',Helvetica,Arial,sans-serif; box-sizing: border-box; font-si=
+ze: 14px; margin: 0;" xmlns=3D"http://www.w3.org/1999/xhtml"><head><meta na=
+me=3D"viewport" content=3D"width=3Ddevice-width"/><meta http-equiv=3D"Conte=
+nt-Type" content=3D"text/html; charset=3DUTF-8"/><title>New Opportunity Iss=
+ued by City of Pompano Beach, FL: VOIP Phone System</title></head><body bgc=
+olor=3D"#f6f6f6" itemscope=3D"" itemtype=3D"http://schema.org/EmailMessage"=
+ style=3D"font-family: 'Helvetica Neue',Helvetica,Arial,sans-serif; box-siz=
+ing: border-box; font-size: 14px; margin: 0;"><table class=3D"body-wrap" bg=
+color=3D"#f6f6f6" style=3D"font-family: 'Helvetica Neue',Helvetica,Arial,sa=
+ns-serif; box-sizing: border-box; font-size: 14px; margin: 0; width: 100%;"=
+><tbody><tr><td>&nbsp;</td><td class=3D"container" width=3D"600" style=3D"f=
+ont-family: 'Helvetica Neue',Helvetica,Arial,sans-serif; box-sizing: border=
+-box; font-size: 14px; margin: 0;"><div class=3D"content" style=3D"font-fam=
+ily: 'Helvetica Neue',Helvetica,Arial,sans-serif; box-sizing: border-box; f=
+ont-size: 14px; margin: 0;"><div style=3D"font-family: 'Helvetica Neue',Hel=
+vetica,Arial,sans-serif; box-sizing: border-box; font-size: 14px; margin: 0=
+; color: #999;"><table width=3D"100%"><tbody><tr><td class=3D"aligncenter c=
+ontent-block" align=3D"center" style=3D"font-family: 'Helvetica Neue',Helve=
+tica,Arial,sans-serif; box-sizing: border-box; font-size: 14px; margin: 0;"=
+><img height=3D"80" src=3D"https://assets.procurement.opengov.com/brand/pro=
+-logo-email.png" alt=3D"OpenGov Procurement Logo" title=3D"OpenGov Procurem=
+ent Logo" width=3D"234"/></td></tr></tbody></table></div><table class=3D"ma=
+in" bgcolor=3D"#fff" cellpadding=3D"0" cellspacing=3D"0" itemprop=3D"action=
+" itemscope=3D"" itemtype=3D"http://schema.org/ConfirmAction" width=3D"100%=
+" style=3D"font-family: 'Helvetica Neue',Helvetica,Arial,sans-serif; box-si=
+zing: border-box; font-size: 14px; margin: 0;"><tbody><tr><td class=3D"cont=
+ent-wrap" style=3D"font-family: 'Helvetica Neue',Helvetica,Arial,sans-serif=
+; box-sizing: border-box; font-size: 14px; margin: 0;"><meta itemprop=3D"na=
+me" content=3D"Confirm Email"/><table cellpadding=3D"0" cellspacing=3D"0" w=
+idth=3D"100%"><tbody><tr><td class=3D"content-block" style=3D"font-family: =
+'Helvetica Neue',Helvetica,Arial,sans-serif; box-sizing: border-box; font-s=
+ize: 14px; margin: 0;"><img height=3D"120" src=3D"https://assets.procuremen=
+t.opengov.com/logo-uploads/1c0a9434-1ba5-4ae4-9853-d473db5f259e_COPB_Logo.p=
+ng" alt=3D"City of Pompano Beach, FL" title=3D"City of Pompano Beach, FL" w=
+idth=3D"120"/></td></tr><tr><td class=3D"content-block" style=3D"font-famil=
+y: 'Helvetica Neue',Helvetica,Arial,sans-serif; box-sizing: border-box; fon=
+t-size: 14px; margin: 0;">Hi Clark,</td></tr><tr><td class=3D"content-block=
+" style=3D"font-family: 'Helvetica Neue',Helvetica,Arial,sans-serif; box-si=
+zing: border-box; font-size: 14px; margin: 0;"><strong>City of Pompano Beac=
+h, FL</strong> has just released the following opportunity:<br/><a href=3D"=
+https://url856.opengov.com/ls/click?upn=3DTRACKING-LINK-REMOVED-FOR-SAMPLE"=
+>VOIP Phone System</a></td></tr><tr><td class=3D"content-block" style=3D"fo=
+nt-family: 'Helvetica Neue',Helvetica,Arial,sans-serif; box-sizing: border-=
+box; font-size: 14px; margin: 0;">Here is a summary of the project:<div sty=
+le=3D"border-left: 1px solid #d3d3d3; padding: 0 5px; margin: 5px 0;"><span=
+ style=3D"font-size: 13px; font-weight: normal; color: #777;"><p style=3D"m=
+argin: 0in 0in 6pt; line-height: 107%; font-size: 10.5pt;">The City seeks p=
+roposals for a modern, secure, supportable unified communications and telep=
+hone solution to replace the existing on-premise Mitel MiVoice Connect envi=
+ronment. The intent is to preserve required business functions while reduci=
+ng dependence on legacy hardware, simplifying administration, improving res=
+iliency, and providing a scalable platform for voice, softphone/mobile comm=
+unications, contact center, emergency calling, and special-purpose telephon=
+y integrations. The City also seeks to simplify the end-user experience, re=
+duce the number of communications interfaces employees must manage, improve=
+ user adoption, minimize ongoing IT support requirements, and improve the t=
+elephone experience provided to residents and other callers.</p><p style=3D=
+"margin: 0in 0in 6pt; line-height: 107%; font-size: 10.5pt;">This RFP will =
+permit vendors to propose cloud-hosted Unified Communication as a Service (=
+UCaaS), hybrid, or other architectures, provided the proposed solution sati=
+sfies the functional, security, resiliency, migration, and support requirem=
+ents defined herein. The City does not intend to require a one-for-one repr=
+oduction of legacy Mitel architecture where a modern equivalent can meet th=
+e same business need.</p></span></div></td></tr><tr><td class=3D"content-bl=
+ock" style=3D"font-family: 'Helvetica Neue',Helvetica,Arial,sans-serif; box=
+-sizing: border-box; font-size: 14px; margin: 0;">Please click the button b=
+elow to view the full request and apply.</td></tr><tr><td class=3D"content-=
+block" itemprop=3D"handler" itemscope=3D"" itemtype=3D"http://schema.org/Ht=
+tpActionHandler" style=3D"font-family: 'Helvetica Neue',Helvetica,Arial,san=
+s-serif; box-sizing: border-box; font-size: 14px; margin: 0;"><a class=3D"b=
+tn-primary" href=3D"https://url856.opengov.com/ls/click?upn=3DTRACKING-LINK=
+-REMOVED-FOR-SAMPLE" itemprop=3D"url" style=3D"font-family: 'Helvetica Neue=
+',Helvetica,Arial,sans-serif; box-sizing: border-box; font-size: 14px; marg=
+in: 0; color: #FFF; background-color: #003c81;">View Opportunity</a></td></=
+tr><tr><td class=3D"content-block" style=3D"font-family: 'Helvetica Neue',H=
+elvetica,Arial,sans-serif; box-sizing: border-box; font-size: 14px; margin:=
+ 0;"><div style=3D"font-size: 13px; font-weight: normal; color: #777; font-=
+style: italic; text-align: center">You are receiving this email because you=
+ requested to be notified any time a new opportunity is issued by City of P=
+ompano Beach, FL. You can adjust your&nbsp;<a href=3D"https://url856.opengo=
+v.com/ls/click?upn=3DSUBSCRIPTION-LINK-REMOVED-FOR-SAMPLE">subscription set=
+tings</a>&nbsp;from your OpenGov Procurement account.</div></td></tr></tbod=
+y></table></td></tr></tbody></table><div class=3D"footer" style=3D"font-fam=
+ily: 'Helvetica Neue',Helvetica,Arial,sans-serif; box-sizing: border-box; f=
+ont-size: 14px; margin: 0;"><table width=3D"100%"><tbody><tr><td class=3D"a=
+ligncenter content-block" align=3D"center" style=3D"font-family: 'Helvetica=
+ Neue',Helvetica,Arial,sans-serif; box-sizing: border-box; font-size: 14px;=
+ margin: 0;">Questions? We're happy to help! Please do NOT respond to this =
+email and instead reach us at&nbsp;<a href=3D"mailto:procurement-support@op=
+engov.com">procurement-support@opengov.com</a>.</td></tr></tbody></table></=
+div></div></td><td>&nbsp;</td></tr></tbody></table></body></html>
+--0d3137861016edcfb384127e75a074ce5f89a1522657bf93a4a54b0bdb30--

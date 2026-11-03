@@ -18,6 +18,7 @@ from .checks import run_checks, summarize
 from .db import DEFAULT_DB_PATH, connect, get_opportunity, init_db
 from .draft import DEFAULT_DRAFTS_DIR, draft_paths
 from .evals import list_checklist
+from .intake import list_documents
 
 HOST = "127.0.0.1"
 PORT = 8000
@@ -50,6 +51,8 @@ DETAIL_FIELDS = [
     ("verdict", "Verdict"),
     ("blockers", "Blockers"),
     ("document_path", "Document"),
+    ("portal_number", "Portal number"),
+    ("agency_number", "Agency number"),
     ("notes", "Notes"),
     ("created_at", "Created"),
     ("updated_at", "Updated"),
@@ -76,6 +79,17 @@ input[type=text], input[type=date] { width: 100%; box-sizing: border-box; }
 
 def _text(value: object) -> str:
     return html.escape(str(value) if value is not None else "—")
+
+
+def _link_or_text(value: object) -> str:
+    """Clickable portal link for http(s) URLs, escaped text otherwise."""
+    if value is None or not str(value).strip():
+        return "—"
+    target = str(value).strip()
+    if target.startswith(("http://", "https://")):
+        quoted = html.escape(target, quote=True)
+        return f'<a href="{quoted}">{html.escape(target)}</a>'
+    return html.escape(target)
 
 
 def render_page(rows: list[sqlite3.Row]) -> str:
@@ -242,14 +256,55 @@ def _render_draft_section(opp_id: int, drafts_dir: Path | str | None) -> str:
     return "".join(parts)
 
 
+def _render_documents_section(opp_id: int, documents: list | None) -> str:
+    if not documents:
+        return (
+            "<h2>Documents</h2>"
+            f"<p>No documents yet. Drop files in <code>drop/opp-{opp_id}/</code>"
+            " then run <code>proposal-creator intake</code>.</p>"
+        )
+    rows = "".join(
+        f"<tr><td>{_text(doc['path'])}</td><td>{_text(doc['source'])}</td>"
+        f"<td>{'confirmed' if doc['confirmed'] else '—'}</td></tr>"
+        for doc in documents
+    )
+    return (
+        "<h2>Documents</h2>"
+        "<table><thead><tr><th>Path</th><th>Source</th>"
+        "<th>Agency #</th></tr></thead>"
+        f"<tbody>{rows}</tbody></table>"
+        f"<p>Drop more files in <code>drop/opp-{opp_id}/</code>"
+        " then run <code>proposal-creator intake</code>.</p>"
+    )
+
+
 def render_detail(
     row: sqlite3.Row,
     checklist: list[sqlite3.Row],
     drafts_dir: Path | str | None = None,
+    documents: list | None = None,
 ) -> str:
+    def field(key: str) -> str:
+        if key == "url":
+            return _link_or_text(row[key])
+        try:
+            return _text(row[key])
+        except (KeyError, IndexError):
+            return "—"
+
     fields = "".join(
-        f"<dt>{label}</dt><dd>{_text(row[key])}</dd>" for key, label in DETAIL_FIELDS
+        f"<dt>{label}</dt><dd>{field(key)}</dd>" for key, label in DETAIL_FIELDS
     )
+    if documents is None:
+        documents = (
+            [{
+                "path": row["document_path"],
+                "source": "drop",
+                "confirmed": None,
+            }]
+            if row["document_path"]
+            else []
+        )
     checks = "".join(
         f'<tr><td class="{c["result"]}">{c["result"].upper()}</td>'
         f"<td>{_text(c['label'])}</td><td>{_text(c['detail'])}</td></tr>"
@@ -269,6 +324,7 @@ def render_detail(
     )
     draft_section = _render_draft_section(row["id"], drafts_dir)
     save_form = _render_save_answer_form(row["id"])
+    docs_section = _render_documents_section(row["id"], documents)
     return f"""<!doctype html>
 <html lang="en">
 <head><meta charset="utf-8"><title>{_text(row["title"])}</title>
@@ -277,6 +333,7 @@ def render_detail(
 <p><a href="/">← All opportunities</a></p>
 <h1>{_text(row["title"])}</h1>
 <dl>{fields}</dl>
+{docs_section}
 <h2>Checks</h2>
 <table><thead><tr><th>Level</th><th>Check</th><th>Detail</th></tr></thead>
 <tbody>{checks}</tbody></table>
@@ -342,10 +399,15 @@ class Handler(BaseHTTPRequestHandler):
                 checklist = (
                     list_checklist(conn, int(match.group(1))) if row is not None else []
                 )
+                documents = (
+                    list_documents(conn, int(match.group(1)))
+                    if row is not None
+                    else []
+                )
             if row is None:
                 self.send_error(404, "No such opportunity")
             else:
-                self._send_html(render_detail(row, checklist))
+                self._send_html(render_detail(row, checklist, documents=documents))
             return
         self.send_error(404, "Not found")
 

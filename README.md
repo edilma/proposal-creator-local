@@ -34,7 +34,18 @@ Then open http://127.0.0.1:8000/ in your browser.
 - `intake` scans the `drop/` folder and creates one stub record per new file
   (title from the filename, status `new`, re-runs add nothing). Drop
   solicitation files there for portals without an API. Dropped files stay
-  local — only `drop/.gitkeep` is committed.
+  local — only `drop/.gitkeep` is committed. Files inside `drop/opp-<id>/`
+  instead attach as additional documents on that opportunity (one folder
+  per opportunity; the detail page shows the folder and each document,
+  flagged confirmed when the agency number is printed in it).
+- `intake-email` fetches MFMP and OpenGov notice emails over read-only
+  Gmail and turns each into an opportunity (or matches it to the existing
+  one by portal/agency number — repeat deliveries never duplicate).
+  Addendums and unknown mail are skipped for now. `--from-file mail.eml`
+  parses one saved email offline; `--dry-run` lists without writing;
+  `--auth` does the one-time consent flow (see `.env.example` for the
+  Gmail client setup). Decide/Draft/quote-gate read the combined text of
+  all documents on an opportunity — same behavior for single-doc records.
 - `reqs` lists the requirement checklist (from `data/requirements_gov.json`).
   `set-eval <id> <code> <PASS|FAIL|UNKNOWN|N/A> --quote "..."` records one
   judgment; `evals <id>` shows the checklist. The detail page shows it too.
@@ -120,8 +131,11 @@ uv run python -m unittest discover -s tests -v
 - `src/proposal_creator/checks.py` — deterministic checks (deadline, opening, document)
 - `src/proposal_creator/web.py` — loopback-only list + detail pages (stdlib `http.server`)
 - `src/proposal_creator/__main__.py` — CLI (`seed` / `serve` / `check` /
-  `intake` / `set-eval` / `evals` / `reqs` / `evaluate` / `rollup` / `draft`)
-- `src/proposal_creator/intake.py` — drop-folder scanning
+  `intake` / `intake-email` / `set-eval` / `evals` / `reqs` / `evaluate` /
+  `rollup` / `draft`)
+- `src/proposal_creator/intake.py` — drop-folder + per-opportunity folder scanning
+- `src/proposal_creator/notices.py` — email notice parsing, matching, dedup
+- `src/proposal_creator/gmail.py` — read-only Gmail client (stdlib OAuth)
 - `src/proposal_creator/evals.py` — requirements, evaluations, quote gate
 - `src/proposal_creator/config.py` — model settings from `.env` / environment
 - `src/proposal_creator/model.py` — OpenAI-compatible client (stdlib only)

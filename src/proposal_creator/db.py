@@ -25,10 +25,31 @@ CREATE TABLE IF NOT EXISTS opportunities (
     verdict TEXT,
     blockers TEXT,
     document_path TEXT,
+    portal_number TEXT,
+    agency_number TEXT,
     notes TEXT,
     created_at TEXT NOT NULL DEFAULT (strftime('%Y-%m-%dT%H:%M:%fZ', 'now')),
     updated_at TEXT NOT NULL DEFAULT (strftime('%Y-%m-%dT%H:%M:%fZ', 'now')),
     UNIQUE (source, external_id)
+);
+
+CREATE TABLE IF NOT EXISTS documents (
+    id INTEGER PRIMARY KEY AUTOINCREMENT,
+    opportunity_id INTEGER NOT NULL REFERENCES opportunities(id),
+    path TEXT NOT NULL,
+    source TEXT NOT NULL DEFAULT 'drop',
+    confirmed INTEGER,
+    added_at TEXT NOT NULL DEFAULT (strftime('%Y-%m-%dT%H:%M:%fZ', 'now')),
+    UNIQUE (opportunity_id, path)
+);
+
+CREATE TABLE IF NOT EXISTS intake_seen (
+    message_id TEXT PRIMARY KEY,
+    source TEXT NOT NULL,
+    subject TEXT,
+    result TEXT NOT NULL,
+    opportunity_id INTEGER REFERENCES opportunities(id),
+    created_at TEXT NOT NULL DEFAULT (strftime('%Y-%m-%dT%H:%M:%fZ', 'now'))
 );
 
 CREATE TABLE IF NOT EXISTS requirements (
@@ -93,10 +114,26 @@ def connect(db_path: Path | str = DEFAULT_DB_PATH) -> sqlite3.Connection:
     return conn
 
 
+def migrate(conn: sqlite3.Connection) -> None:
+    """Bring an older database file up to the current schema.
+
+    Fresh tables come from executescript(SCHEMA); this adds columns that
+    did not exist when an older file was created. Idempotent.
+    """
+    cols = {r["name"] for r in conn.execute("PRAGMA table_info(opportunities)")}
+    for column in ("portal_number", "agency_number"):
+        if column not in cols:
+            conn.execute(
+                f"ALTER TABLE opportunities ADD COLUMN {column} TEXT"
+            )
+    conn.commit()
+
+
 def init_db(db_path: Path | str = DEFAULT_DB_PATH) -> Path:
     db_path = Path(db_path)
     with closing(connect(db_path)) as conn:
         conn.executescript(SCHEMA)
+        migrate(conn)
     return db_path
 
 
@@ -113,6 +150,8 @@ def add_opportunity(conn: sqlite3.Connection, opp: dict) -> int:
         "verdict",
         "blockers",
         "document_path",
+        "portal_number",
+        "agency_number",
         "notes",
     ]
     placeholders = ", ".join(f":{c}" for c in columns)

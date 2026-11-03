@@ -68,6 +68,32 @@ def _read_pdf_text(path: Path) -> str | None:
     return text if text.strip() else None
 
 
+def read_opp_text(conn: sqlite3.Connection, opp_id: int) -> str | None:
+    """Combined readable text of every document on an opportunity.
+
+    Registered documents (path order) joined; a pre-documents-table
+    `document_path` is read when no rows exist yet. Unreadable files are
+    skipped; None when nothing readable remains. For a single-document
+    opportunity this is exactly `read_doc_text` of that file.
+    """
+    opp = conn.execute(
+        "SELECT document_path FROM opportunities WHERE id = ?", (opp_id,)
+    ).fetchone()
+    if opp is None:
+        return None
+    rows = conn.execute(
+        "SELECT path FROM documents WHERE opportunity_id = ? ORDER BY path",
+        (opp_id,),
+    ).fetchall()
+    paths = [r["path"] for r in rows] or [opp["document_path"]]
+    texts = []
+    for path in paths:
+        text = read_doc_text(path)
+        if text:
+            texts.append(text)
+    return "\n\n".join(texts) if texts else None
+
+
 def load_requirements(
     conn: sqlite3.Connection, req_path: Path | str = DEFAULT_REQUIREMENTS_PATH
 ) -> int:
@@ -143,7 +169,7 @@ def set_evaluation(
         raise ValueError("PASS requires a verbatim quote from the solicitation.")
     verified = None
     if quote:
-        text = read_doc_text(opp["document_path"])
+        text = read_opp_text(conn, opp_id)
         if text is not None:
             if not quote_in_text(quote, text):
                 raise ValueError(

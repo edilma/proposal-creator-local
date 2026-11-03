@@ -17,7 +17,7 @@ from .config import ModelConfig
 from .evals import (
     VERDICTS,
     list_requirements,
-    read_doc_text,
+    read_opp_text,
     set_evaluation,
 )
 from .prompts import get_prompt
@@ -75,7 +75,7 @@ def run_evaluate(
     ).fetchone()
     if opp is None:
         raise ValueError(f"No opportunity with id {opp_id}.")
-    doc_text = read_doc_text(opp["document_path"])
+    doc_text = read_opp_text(conn, opp_id)
     if not doc_text:
         raise ValueError(
             f"Opportunity {opp_id} has no readable document."

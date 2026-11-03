@@ -6,6 +6,7 @@ notes/
 
 .venv/
 secrets/
+data/gmail_token.json
 *.db
 .uv-cache/
 __pycache__/

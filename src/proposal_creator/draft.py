@@ -22,7 +22,7 @@ from typing import Callable
 from . import answers as answers_lib
 from . import model as model_api
 from .config import ModelConfig
-from .evals import list_checklist, read_doc_text
+from .evals import list_checklist, read_opp_text
 from .prompts import get_prompt
 
 SYSTEM_PROMPT = get_prompt("Draft")
@@ -201,7 +201,7 @@ def run_draft(
     ).fetchone()
     if opp is None:
         raise ValueError(f"No opportunity with id {opp_id}.")
-    doc_text = read_doc_text(opp["document_path"])
+    doc_text = read_opp_text(conn, opp_id)
     if not doc_text:
         raise ValueError(
             f"Opportunity {opp_id} has no readable document."
