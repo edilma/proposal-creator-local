@@ -34,6 +34,7 @@ from .evaluate import build_messages, run_evaluate
 from .intake import (
     DEFAULT_DROP_DIR,
     confirm_documents,
+    list_documents,
     scan_drop,
     scan_folders,
 )
@@ -156,7 +157,12 @@ def main(argv: list[str] | None = None) -> int:
     if args.command == "check":
         with closing(connect(args.db)) as conn:
             row = get_opportunity(conn, args.id)
-            results = run_checks(row) if row is not None else []
+            documents = (
+                list_documents(conn, args.id) if row is not None else []
+            )
+            results = (
+                run_checks(row, documents=documents) if row is not None else []
+            )
         if row is None:
             print(f"No opportunity with id {args.id}.")
             return 1

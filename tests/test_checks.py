@@ -8,7 +8,7 @@ from io import StringIO
 from pathlib import Path
 
 from helpers import handle_request
-from proposal_creator import checks, db
+from proposal_creator import checks, db, intake
 from proposal_creator.__main__ import main as cli_main
 
 TODAY = date(2026, 10, 29)
@@ -78,6 +78,43 @@ class DocumentTest(unittest.TestCase):
             result = checks.check_document(opp(document_path=str(doc)))
         self.assertEqual(result["result"], "ok")
 
+    def test_documents_table_attachment_passes(self) -> None:
+        with tempfile.TemporaryDirectory() as tmp:
+            doc = Path(tmp) / "portal.pdf"
+            doc.write_text("fetched", encoding="utf-8")
+            rows = [{"path": str(doc), "source": "portal", "confirmed": 1}]
+            result = checks.check_document(opp(), rows)
+            self.assertEqual(result["result"], "ok")
+            self.assertIn("Document found", result["detail"])
+
+    def test_missing_documents_table_file_warns(self) -> None:
+        result = checks.check_document(
+            opp(), [{"path": "drop/opp-10/gone.pdf"}]
+        )
+        self.assertEqual(result["result"], "warn")
+        self.assertIn("gone.pdf", result["detail"])
+
+    def test_multiple_documents_counted(self) -> None:
+        with tempfile.TemporaryDirectory() as tmp:
+            paths = []
+            for name in ("a.txt", "b.txt"):
+                doc = Path(tmp) / name
+                doc.write_text("x", encoding="utf-8")
+                paths.append(str(doc))
+            result = checks.check_document(opp(), paths)
+        self.assertEqual(result["result"], "ok")
+        self.assertIn("2 documents found", result["detail"])
+
+    def test_documents_table_wins_over_legacy(self) -> None:
+        with tempfile.TemporaryDirectory() as tmp:
+            doc = Path(tmp) / "portal.pdf"
+            doc.write_text("fetched", encoding="utf-8")
+            result = checks.check_document(
+                opp(document_path="drop/gone.pdf"),
+                [{"path": str(doc)}],
+            )
+            self.assertEqual(result["result"], "ok")
+
 
 class SummarizeTest(unittest.TestCase):
     def test_all_ok(self) -> None:
@@ -123,6 +160,27 @@ class DetailPageTest(unittest.TestCase):
             response = handle_request(db_path, b"GET / HTTP/1.0\r\nHost: x\r\n\r\n")
         self.assertIn('href="/opp/1"', response)
         self.assertIn("Checks", response)
+
+    def test_detail_check_sees_table_attachments(self) -> None:
+        with tempfile.TemporaryDirectory() as tmp:
+            db_path = Path(tmp) / "test.db"
+            db.init_db(db_path)
+            doc = Path(tmp) / "portal.pdf"
+            doc.write_text("fetched", encoding="utf-8")
+            with closing(db.connect(db_path)) as conn:
+                opp_id = db.add_opportunity(conn, {
+                    "source": "opengov", "external_id": None, "title": "T",
+                    "agency": None, "url": None, "open_date": None,
+                    "close_date": None, "status": "new", "verdict": None,
+                    "blockers": None, "document_path": None, "notes": None,
+                })
+                intake.add_document(conn, opp_id, str(doc), source="portal")
+            response = handle_request(
+                db_path,
+                f"GET /opp/{opp_id} HTTP/1.0\r\nHost: x\r\n\r\n".encode(),
+            )
+        self.assertIn("Document found", response)
+        self.assertNotIn("No document attached yet", response)
 
 
 class CheckCommandTest(unittest.TestCase):

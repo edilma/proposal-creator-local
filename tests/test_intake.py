@@ -40,7 +40,26 @@ class IntakeTest(unittest.TestCase):
             intake.scan_drop(drop, db_path)
             added, skipped = intake.scan_drop(drop, db_path)
             self.assertEqual(added, [])
-            self.assertEqual(len(skipped), 1)
+            self.assertEqual(skipped, [])
+            with closing(db.connect(db_path)) as conn:
+                self.assertEqual(len(db.list_opportunities(conn)), 1)
+
+    def test_new_stub_files_document_into_opp_folder(self) -> None:
+        with tempfile.TemporaryDirectory() as tmp:
+            drop = make_drop(tmp, "RFP-118.txt")
+            db_path = Path(tmp) / "test.db"
+            added, _ = intake.scan_drop(drop, db_path)
+            self.assertEqual(len(added), 1)
+            self.assertFalse((drop / "RFP-118.txt").exists())
+            with closing(db.connect(db_path)) as conn:
+                rows = db.list_opportunities(conn)
+                opp_id = rows[0]["id"]
+                moved = drop / f"opp-{opp_id}" / "RFP-118.txt"
+                self.assertTrue(moved.is_file())
+                self.assertIn(f"opp-{opp_id}", rows[0]["document_path"])
+                docs = intake.list_documents(conn, opp_id)
+                self.assertEqual(len(docs), 1)
+                self.assertIn(f"opp-{opp_id}", docs[0]["path"])
 
     def test_skips_dotfiles_and_directories(self) -> None:
         with tempfile.TemporaryDirectory() as tmp:
@@ -63,8 +82,11 @@ class IntakeTest(unittest.TestCase):
             with redirect_stdout(out):
                 code = cli_main(["--db", str(db_path), "intake", "--drop", str(drop)])
             self.assertEqual(code, 0)
+            # Filed into the new stub's folder, then seen as known by scan_folders.
             self.assertIn("added 1", out.getvalue())
-            self.assertIn("skipped 0", out.getvalue())
+            self.assertIn("attached 0", out.getvalue())
+            self.assertIn("skipped 1", out.getvalue())
+            self.assertIn("opp-1", out.getvalue())
 
 
 def make_opp(conn, **overrides) -> int:

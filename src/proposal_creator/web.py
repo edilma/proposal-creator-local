@@ -92,7 +92,9 @@ def _link_or_text(value: object) -> str:
     return html.escape(target)
 
 
-def render_page(rows: list[sqlite3.Row]) -> str:
+def render_page(
+    rows: list[sqlite3.Row], documents_by_opp: dict | None = None
+) -> str:
     def cell(row: sqlite3.Row, key: str) -> str:
         if key == "title":
             return (
@@ -100,7 +102,8 @@ def render_page(rows: list[sqlite3.Row]) -> str:
                 f"{html.escape(str(row['title']))}</a>"
             )
         if key == "checks":
-            return _text(summarize(run_checks(row)))
+            docs = (documents_by_opp or {}).get(row["id"])
+            return _text(summarize(run_checks(row, documents=docs)))
         value = row[key] if key in row.keys() else None
         return _text(value)
 
@@ -308,7 +311,7 @@ def render_detail(
     checks = "".join(
         f'<tr><td class="{c["result"]}">{c["result"].upper()}</td>'
         f"<td>{_text(c['label'])}</td><td>{_text(c['detail'])}</td></tr>"
-        for c in run_checks(row)
+        for c in run_checks(row, documents=documents)
     )
 
     def evidence(item: sqlite3.Row) -> str:
@@ -383,7 +386,14 @@ class Handler(BaseHTTPRequestHandler):
         if self.path in ("/", "/index.html"):
             with closing(connect(self.db_path)) as conn:
                 rows = list(conn.execute("SELECT * FROM opportunities ORDER BY id"))
-            self._send_html(render_page(rows))
+                documents_by_opp: dict = {}
+                for doc in conn.execute(
+                    "SELECT opportunity_id, path FROM documents"
+                ):
+                    documents_by_opp.setdefault(
+                        doc["opportunity_id"], []
+                    ).append(doc["path"])
+            self._send_html(render_page(rows, documents_by_opp))
             return
         if self.path == "/answers":
             with closing(connect(self.db_path)) as conn:

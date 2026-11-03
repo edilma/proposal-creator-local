@@ -32,12 +32,13 @@ Then open http://127.0.0.1:8000/ in your browser.
   deadline (passed / closing soon / days left), not-open-yet notice, and
   whether the attached document exists. No model calls, ever.
 - `intake` scans the `drop/` folder and creates one stub record per new file
-  (title from the filename, status `new`, re-runs add nothing). Drop
-  solicitation files there for portals without an API. Dropped files stay
-  local — only `drop/.gitkeep` is committed. Files inside `drop/opp-<id>/`
-  instead attach as additional documents on that opportunity (one folder
-  per opportunity; the detail page shows the folder and each document,
-  flagged confirmed when the agency number is printed in it).
+  (title from the filename, status `new`, re-runs add nothing), filing the
+  file into `drop/opp-<id>/` as it goes. Drop solicitation files there for
+  portals without an API — or straight into an opportunity's own folder to
+  attach them to it. Dropped files stay local — only `drop/.gitkeep` is
+  committed. Every opportunity keeps its files in its own folder; the
+  detail page shows the folder and each document, flagged confirmed when
+  the agency number is printed in it.
 - `intake-email` fetches MFMP and OpenGov notice emails over read-only
   Gmail and turns each into an opportunity (or matches it to the existing
   one by portal/agency number — repeat deliveries never duplicate).

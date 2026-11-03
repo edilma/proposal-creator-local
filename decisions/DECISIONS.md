@@ -439,3 +439,26 @@ Revisit when: OpenGov changes the embedded-data shape (parser errors name
 the file -- re-map from a fresh save); MFMP findings arrive (same
 fetch-portal pattern, separate parser); volume makes even the save step
 worth automating (then revisit the browser-automation tradeoff openly).
+
+## 024 - Document check reads the documents table; intake files into folders
+
+Decision: The deterministic document check now looks at documents-table rows
+first and the legacy document_path only when no rows exist (same precedence
+as read_opp_text and list_documents); one file keeps the legacy "Document
+found: <path>." wording, several report "N documents found.", and missing
+files are named. List, detail, and `check` all pass the rows through. Separately,
+drop-folder intake now files each new stub's document into drop/opp-<id>/
+at creation (document row registered at once); a colliding name stays flat
+rather than overwriting. Existing flat files for opps 8/9 were moved into
+their folders with stored paths updated (opp 9's readable text verified
+identical at 189,263 chars post-move).
+Why: fetch-portal attachments left document_path NULL, so the check wrongly
+warned "No document attached yet." on a healthy record; the check must see
+what Decide/Draft already see. Filing-at-intake keeps one layout going
+forward instead of re-scattering flat files that later need another move.
+Alternatives: Backfill document_path on every attach (rejected -- two
+sources of truth drift; the table is the record, the column the fallback);
+leave flat drops flat (rejected -- contradicts the per-folder organization
+the owner asked for).
+Revisit when: The legacy document_path column can be retired entirely (all
+rows adopted and no writer needs it -- then drop the fallback).

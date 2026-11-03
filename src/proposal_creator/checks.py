@@ -94,36 +94,63 @@ def check_opening(opp: Any, today: date | None = None) -> dict | None:
     return None
 
 
-def check_document(opp: Any) -> dict:
-    raw = _field(opp, "document_path")
-    if raw is None or (isinstance(raw, str) and not raw.strip()):
+def _doc_paths(documents: Any) -> list[str]:
+    """Paths out of documents-table rows (or plain path strings)."""
+    paths = []
+    for item in documents or []:
+        if isinstance(item, str):
+            path = item
+        else:
+            try:
+                path = item["path"]
+            except (KeyError, IndexError, TypeError):
+                continue
+        if path is not None and str(path).strip():
+            paths.append(str(path))
+    return paths
+
+
+def check_document(opp: Any, documents: Any = None) -> dict:
+    paths = _doc_paths(documents)
+    if not paths:
+        raw = _field(opp, "document_path")
+        if raw is not None and str(raw).strip():
+            paths = [str(raw)]
+    if not paths:
         return {
             "id": "document",
             "label": "Document",
             "result": "warn",
             "detail": "No document attached yet.",
         }
-    if Path(str(raw)).exists():
+    missing = [path for path in paths if not Path(path).exists()]
+    if not missing:
+        if len(paths) == 1:
+            detail = f"Document found: {paths[0]}."
+        else:
+            detail = f"{len(paths)} documents found."
         return {
             "id": "document",
             "label": "Document",
             "result": "ok",
-            "detail": f"Document found: {raw}.",
+            "detail": detail,
         }
     return {
         "id": "document",
         "label": "Document",
         "result": "warn",
-        "detail": f"Document not found: {raw}.",
+        "detail": f"Document not found: {', '.join(missing)}.",
     }
 
 
-def run_checks(opp: Any, today: date | None = None) -> list[dict]:
+def run_checks(
+    opp: Any, today: date | None = None, documents: Any = None
+) -> list[dict]:
     results = [check_deadline(opp, today)]
     opening = check_opening(opp, today)
     if opening is not None:
         results.append(opening)
-    results.append(check_document(opp))
+    results.append(check_document(opp, documents))
     return results
 
 

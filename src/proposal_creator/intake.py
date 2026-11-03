@@ -40,7 +40,11 @@ def scan_drop(
     drop_dir: Path | str = DEFAULT_DROP_DIR,
     db_path: Path | str = DEFAULT_DB_PATH,
 ) -> tuple[list[dict], list[str]]:
-    """Scan the folder; return (added stub dicts, skipped path strings)."""
+    """Scan the folder; return (added stub dicts, skipped path strings).
+
+New stubs file their document into `drop/opp-<id>/`, so every
+opportunity's files live in its own folder from the start.
+"""
     drop_dir = Path(drop_dir)
     init_db(db_path)
     if not drop_dir.is_dir():
@@ -76,10 +80,42 @@ def scan_drop(
                 "document_path": stored,
                 "notes": "Stub from drop-folder intake; dates and details need review.",
             }
-            add_opportunity(conn, stub)
-            known.add(stored)
+            opp_id = add_opportunity(conn, stub)
+            if opp_id:
+                filed = _file_into_folder(conn, opp_id, path, drop_dir)
+                stub["document_path"] = filed
+            known.add(stub["document_path"])
             added.append(stub)
     return added, skipped
+
+
+def _file_into_folder(
+    conn: sqlite3.Connection,
+    opp_id: int,
+    path: Path,
+    drop_dir: Path,
+) -> str:
+    """Move a new stub's file into `drop/opp-<id>/`; return the stored path.
+
+    Registers the document row too. If the target name is taken (a folder
+    predating the record), the file stays flat — never overwritten.
+    """
+    folder = drop_dir / f"opp-{opp_id}"
+    folder.mkdir(parents=True, exist_ok=True)
+    target = folder / path.name
+    if target.exists():
+        add_document(conn, opp_id, _store_path(path, drop_dir))
+        return _store_path(path, drop_dir)
+    target.write_bytes(path.read_bytes())
+    path.unlink()
+    stored = _store_path(target, drop_dir)
+    conn.execute(
+        "UPDATE opportunities SET document_path = ? WHERE id = ?",
+        (stored, opp_id),
+    )
+    conn.commit()
+    add_document(conn, opp_id, stored)
+    return stored
 
 
 def add_document(
