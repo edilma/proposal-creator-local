@@ -46,6 +46,12 @@ Then open http://127.0.0.1:8000/ in your browser.
   `--auth` does the one-time consent flow (see `.env.example` for the
   Gmail client setup). Decide/Draft/quote-gate read the combined text of
   all documents on an opportunity — same behavior for single-doc records.
+- `fetch-portal <id> --from-file page.html` backfills an OpenGov
+  opportunity (portal/agency numbers, dates) from a project page you saved
+  in your browser (view-source or plain save both work — OpenGov 403s
+  scripts, so the browser step stays human) and downloads every attached
+  file into `drop/opp-<id>/`. Re-run when links go stale: signed URLs
+  expire, and failures say to re-save the page.
 - `reqs` lists the requirement checklist (from `data/requirements_gov.json`).
   `set-eval <id> <code> <PASS|FAIL|UNKNOWN|N/A> --quote "..."` records one
   judgment; `evals <id>` shows the checklist. The detail page shows it too.
@@ -131,11 +137,12 @@ uv run python -m unittest discover -s tests -v
 - `src/proposal_creator/checks.py` — deterministic checks (deadline, opening, document)
 - `src/proposal_creator/web.py` — loopback-only list + detail pages (stdlib `http.server`)
 - `src/proposal_creator/__main__.py` — CLI (`seed` / `serve` / `check` /
-  `intake` / `intake-email` / `set-eval` / `evals` / `reqs` / `evaluate` /
-  `rollup` / `draft`)
+  `intake` / `intake-email` / `fetch-portal` / `set-eval` / `evals` /
+  `reqs` / `evaluate` / `rollup` / `draft`)
 - `src/proposal_creator/intake.py` — drop-folder + per-opportunity folder scanning
 - `src/proposal_creator/notices.py` — email notice parsing, matching, dedup
 - `src/proposal_creator/gmail.py` — read-only Gmail client (stdlib OAuth)
+- `src/proposal_creator/opengov.py` — saved-page parsing + attachment download
 - `src/proposal_creator/evals.py` — requirements, evaluations, quote gate
 - `src/proposal_creator/config.py` — model settings from `.env` / environment
 - `src/proposal_creator/model.py` — OpenAI-compatible client (stdlib only)

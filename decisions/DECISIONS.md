@@ -403,3 +403,39 @@ Revisit when: Addendums return (need real samples + the pursuing rule:
 winnable stays live, fixable NEEDS INFO stays live); portal endpoints are
 identified (then build autofetch with graceful fallback); SAM.gov API work
 starts (separate piece, same notices/matching core).
+
+## 023 - OpenGov fetch: saved page in, documents out
+
+Decision: `fetch-portal <id> --from-file page.html` backfills an OpenGov
+opportunity (portal id, agency financialId, title, release/due dates -- empty
+fields only) and downloads every project attachment into drop/opp-<id>/ as
+source='portal' documents, then runs agency-number confirmation. The page is
+saved by the owner in their browser because OpenGov 403s scripts and
+sometimes shows human verification; impersonating a browser past that would
+breach the no-bypass rule. Both save styles work: plain saves pass through,
+Chrome view-source saves (syntax-highlighted wrapper) are detected and
+unwrapped line by line with entities decoded. Parsing reads the embedded
+window.__data project subtree via balanced-brace extraction (the full blob is
+a JS literal, not strict JSON -- it contains a function value -- but the
+project record itself parses cleanly): id, financialId, title,
+releaseProjectDate, proposalDeadline, attachments[] (filename, presigned S3
+url, appendixId). Filenames are sanitized to basenames; existing files are
+kept, never re-downloaded; downloads are atomic (.part + rename); failures
+report per file with a re-save hint (signed URLs expire) and exit 1 while
+keeping the backfill. The raw save (samples/opengov-page-322586.html) is
+gitignored -- it holds live signed URLs and contact PII; tests run against a
+scrubbed same-shape fixture (URLs/emails/phones/personal names redacted,
+office/city kept) verified to parse identically.
+Why: The data is public and already rendered for the owner; the only
+script-hostile part is transport, so the human does the 10-second save and
+the tool does everything after. Presigned S3 GETs need no session, so no
+login automation is required either way.
+Alternatives: Direct page fetch with browser impersonation (rejected --
+bypass-adjacent and fragile against verification challenges); owner pasting
+URLs by hand (rejected -- the page already lists them, parsing is exact);
+Selenium/Playwright driving their browser (rejected -- heavy dependency for
+a save dialog, revisit only if volume demands it).
+Revisit when: OpenGov changes the embedded-data shape (parser errors name
+the file -- re-map from a fresh save); MFMP findings arrive (same
+fetch-portal pattern, separate parser); volume makes even the save step
+worth automating (then revisit the browser-automation tradeoff openly).

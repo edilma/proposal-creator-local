@@ -85,6 +85,20 @@ def build_parser() -> argparse.ArgumentParser:
         help="Gmail search query (default: both notice senders)",
     )
 
+    fetch_p = sub.add_parser(
+        "fetch-portal",
+        help="Backfill an opportunity from a saved OpenGov page; download files.",
+    )
+    fetch_p.add_argument("id", type=int, help="Opportunity id")
+    fetch_p.add_argument(
+        "--from-file", required=True, metavar="HTML",
+        help="Saved project page (view-source or plain save)",
+    )
+    fetch_p.add_argument(
+        "--drop", default=str(DEFAULT_DROP_DIR),
+        help="Drop folder holding opp-<id> dirs (default: drop)",
+    )
+
     set_p = sub.add_parser("set-eval", help="Record one checklist evaluation.")
     set_p.add_argument("id", type=int, help="Opportunity id")
     set_p.add_argument("code", help="Requirement code (see: reqs)")
@@ -254,6 +268,57 @@ def main(argv: list[str] | None = None) -> int:
                 f"{count} {result}" for result, count in sorted(counts.items())
             )
             print(f"intake-email complete: {summary or 'nothing'}.")
+        return 0
+    if args.command == "fetch-portal":
+        from . import opengov as portal
+        from .intake import add_document
+
+        try:
+            html_text = Path(args.from_file).read_text(
+                encoding="utf-8", errors="replace"
+            )
+        except OSError as exc:
+            print(f"error: cannot read {args.from_file}: {exc}.")
+            return 1
+        try:
+            summary = portal.summarize_project(
+                portal.extract_project(html_text)
+            )
+        except portal.PortalError as exc:
+            print(f"error: {exc}")
+            return 1
+        init_db(args.db)
+        with closing(connect(args.db)) as conn:
+            if get_opportunity(conn, args.id) is None:
+                print(f"No opportunity with id {args.id}.")
+                return 1
+            try:
+                filled = portal.apply_portal_data(conn, args.id, summary)
+            except portal.PortalError as exc:
+                print(f"error: {exc}")
+                return 1
+            for key, value in filled.items():
+                print(f"backfilled {key}: {value}")
+            dest = Path(args.drop) / f"opp-{args.id}"
+            results = portal.download_attachments(
+                summary["attachments"], dest
+            )
+            failed = 0
+            for item in results:
+                if item["status"] == "failed":
+                    failed += 1
+                    print(f"failed: {item['filename']}: {item['error']}")
+                    continue
+                add_document(conn, args.id, item["path"], source="portal")
+                print(f"{item['status']}: {item['path']}")
+            confirm_documents(conn, args.id)
+        if failed:
+            print(f"fetch-portal done with {failed} failed download(s).")
+            return 1
+        print(
+            f"fetch-portal complete:"
+            f" {len(results)} file(s), {len(filled)} field(s) backfilled."
+        )
         return 0
     if args.command == "set-eval":
         try:
