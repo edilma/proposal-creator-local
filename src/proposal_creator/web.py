@@ -19,7 +19,7 @@ from .db import DEFAULT_DB_PATH, connect, get_opportunity, init_db
 from .draft import DEFAULT_DRAFTS_DIR, draft_paths
 from .evals import list_checklist
 from .intake import list_documents
-from .rollup import CANNOT_BID, NEEDS_INFO
+from .rollup import CAN_BID, CANNOT_BID, NEEDS_INFO
 
 HOST = "127.0.0.1"
 PORT = 8000
@@ -70,8 +70,17 @@ dd { margin: 0.2rem 0 0 0; }
 .warn { color: #a60; font-weight: bold; }
 .info { color: #06a; }
 .ok { color: #080; }
+.badge { display: inline-block; padding: 0.15rem 0.7rem; border-radius: 999px;
+  font-weight: bold; font-size: 0.85rem; color: #fff; white-space: nowrap; }
+.can { background: #1a7a2e; }
+.needs { background: #b26a00; }
+.cannot { background: #b00020; }
+.inf { background: #0560a8; }
+.na { background: #6b7280; }
+h1 { font-size: 1.8rem; }
+h2 { margin-top: 2rem; padding-bottom: 0.3rem; border-bottom: 1px solid #ddd; }
 pre { white-space: pre-wrap; word-wrap: break-word; background: #fafafa;
-  padding: 0.6rem; border: 1px solid #eee; }
+  padding: 0.6rem; border: 1px solid #eee; line-height: 1.5; }
 textarea { width: 100%; box-sizing: border-box; }
 input[type=text], input[type=date] { width: 100%; box-sizing: border-box; }
 .error { color: #a00; font-weight: bold; }
@@ -93,6 +102,30 @@ def _link_or_text(value: object) -> str:
     return html.escape(target)
 
 
+VERDICT_BADGE = {
+    CAN_BID: "can",
+    NEEDS_INFO: "needs",
+    CANNOT_BID: "cannot",
+    "PASS": "can",
+    "FAIL": "cannot",
+    "UNKNOWN": "needs",
+    "N/A": "na",
+}
+CHECK_BADGE = {"fail": "cannot", "warn": "needs", "info": "inf", "ok": "can"}
+
+
+def _badge(text: str, css: str) -> str:
+    return f'<span class="badge {css}">{_text(text)}</span>'
+
+
+def _verdict_badge(value: object) -> str:
+    """Pill badge for a verdict, or plain text when unrecognized."""
+    css = VERDICT_BADGE.get(str(value)) if value is not None else None
+    if css is None:
+        return _text(value)
+    return _badge(str(value), css)
+
+
 def render_page(
     rows: list[sqlite3.Row], documents_by_opp: dict | None = None
 ) -> str:
@@ -105,6 +138,9 @@ def render_page(
         if key == "checks":
             docs = (documents_by_opp or {}).get(row["id"])
             return _text(summarize(run_checks(row, documents=docs)))
+        if key == "verdict":
+            value = row[key] if key in row.keys() else None
+            return _verdict_badge(value)
         value = row[key] if key in row.keys() else None
         return _text(value)
 
@@ -134,10 +170,10 @@ def render_page(
 def _freshness_cell(entry: sqlite3.Row, stale_days: int) -> str:
     state = answers_lib.freshness(entry, stale_days=stale_days)
     if state == "expired":
-        return '<span class="fail">EXPIRED — confirm still current</span>'
+        return _badge("EXPIRED — confirm still current", "cannot")
     if state == "stale":
-        return '<span class="warn">STALE — confirm still current</span>'
-    return '<span class="ok">current</span>'
+        return _badge("STALE — confirm still current", "needs")
+    return _badge("current", "can")
 
 
 def render_answers(
@@ -287,9 +323,9 @@ def _render_verdict_section(
 ) -> str:
     """Why this verdict, in business-owner language (stored evidence only)."""
     if row["verdict"] == CANNOT_BID:
-        wanted, badge, css = "FAIL", "Failed", "fail"
+        wanted, badge, css = "FAIL", "Failed", "cannot"
     elif row["verdict"] == NEEDS_INFO:
-        wanted, badge, css = "UNKNOWN", "Needs info", "warn"
+        wanted, badge, css = "UNKNOWN", "Needs info", "needs"
     else:
         return ""
     items = [item for item in checklist if item["verdict"] == wanted]
@@ -302,12 +338,13 @@ def _render_verdict_section(
     parts = ["<h2>Why this verdict</h2>"]
     for item in items:
         evidence = "verified" if item["verified"] else "unverified"
+        ecss = "can" if item["verified"] else "na"
         quote = item["quote"] or "No quote recorded."
         note = item["note"] or "No reason recorded."
         parts.append(
             f"<p><strong>{_text(item['question'])}</strong>"
-            f' <span class="{css}">{badge}</span>'
-            f" <span>({evidence})</span></p>"
+            f" {_badge(badge, css)}"
+            f" {_badge(evidence, ecss)}</p>"
             f"<p>Requirement says: “{_text(quote)}”</p>"
             f"<p>Why: {_text(note)}</p>"
         )
@@ -324,9 +361,12 @@ def render_detail(
         if key == "url":
             return _link_or_text(row[key])
         try:
-            return _text(row[key])
+            value = row[key]
         except (KeyError, IndexError):
             return "—"
+        if key == "verdict":
+            return _verdict_badge(value)
+        return _text(value)
 
     fields = "".join(
         f"<dt>{label}</dt><dd>{field(key)}</dd>" for key, label in DETAIL_FIELDS
@@ -342,7 +382,7 @@ def render_detail(
             else []
         )
     checks = "".join(
-        f'<tr><td class="{c["result"]}">{c["result"].upper()}</td>'
+        f'<tr><td>{_badge(str(c["result"]).upper(), CHECK_BADGE.get(c["result"], "na"))}</td>'
         f"<td>{_text(c['label'])}</td><td>{_text(c['detail'])}</td></tr>"
         for c in run_checks(row, documents=documents)
     )
@@ -350,11 +390,13 @@ def render_detail(
     def evidence(item: sqlite3.Row) -> str:
         if not item["quote"]:
             return "—"
-        return "verified" if item["verified"] else "unverified"
+        if item["verified"]:
+            return _badge("verified", "can")
+        return _badge("unverified", "na")
 
     evals = "".join(
         f"<tr><td>{_text(item['code'])}</td><td>{_text(item['question'])}</td>"
-        f"<td>{_text(item['verdict'])}</td><td>{_text(item['quote'])}</td>"
+        f"<td>{_verdict_badge(item['verdict'])}</td><td>{_text(item['quote'])}</td>"
         f"<td>{evidence(item)}</td></tr>"
         for item in checklist
     )
