@@ -1,5 +1,7 @@
 # proposal-creator-local
 
+From a 15-document government RFP to an evidence-backed bid decision and proposal draft — powered by Meta Muse.
+
 A local assistant that reads a government solicitation and tells a small business
 whether it can bid — with a verbatim quote behind every answer — then drafts the
 response package. It never submits; a person decides. Runs entirely on your machine.
