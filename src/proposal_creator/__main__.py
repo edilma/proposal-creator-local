@@ -88,12 +88,16 @@ def build_parser() -> argparse.ArgumentParser:
 
     fetch_p = sub.add_parser(
         "fetch-portal",
-        help="Backfill an opportunity from a saved OpenGov page; download files.",
+        help="Backfill an opportunity from its portal page; download files.",
     )
     fetch_p.add_argument("id", type=int, help="Opportunity id")
     fetch_p.add_argument(
-        "--from-file", required=True, metavar="HTML",
-        help="Saved project page (view-source or plain save)",
+        "--from-file", default=None, metavar="HTML",
+        help="Saved OpenGov project page (view-source or plain save)",
+    )
+    fetch_p.add_argument(
+        "--mfmp", default=None, metavar="AD_ID",
+        help="MFMP advertisement id to fetch live (e.g. 16733)",
     )
     fetch_p.add_argument(
         "--drop", default=str(DEFAULT_DROP_DIR),
@@ -276,23 +280,44 @@ def main(argv: list[str] | None = None) -> int:
             print(f"intake-email complete: {summary or 'nothing'}.")
         return 0
     if args.command == "fetch-portal":
+        from . import mfmp as mfmp_api
         from . import opengov as portal
         from .intake import add_document
 
-        try:
-            html_text = Path(args.from_file).read_text(
-                encoding="utf-8", errors="replace"
-            )
-        except OSError as exc:
-            print(f"error: cannot read {args.from_file}: {exc}.")
+        if bool(args.from_file) == bool(args.mfmp):
+            print("error: pass exactly one of --from-file or --mfmp.")
             return 1
-        try:
-            summary = portal.summarize_project(
-                portal.extract_project(html_text)
-            )
-        except portal.PortalError as exc:
-            print(f"error: {exc}")
-            return 1
+        doc_source = "portal"
+        failure_hint = (
+            "the page save may be stale — re-save it, signed URLs expire"
+        )
+        opener = None
+        if args.mfmp is not None:
+            try:
+                summary = mfmp_api.summarize_advertisement(
+                    mfmp_api.fetch_advertisement(args.mfmp)
+                )
+            except mfmp_api.MfmpError as exc:
+                print(f"error: {exc}")
+                return 1
+            doc_source = "mfmp"
+            failure_hint = "the MFMP endpoint may have changed"
+            opener = mfmp_api.make_opener(summary["attachments"], args.mfmp)
+        else:
+            try:
+                html_text = Path(args.from_file).read_text(
+                    encoding="utf-8", errors="replace"
+                )
+            except OSError as exc:
+                print(f"error: cannot read {args.from_file}: {exc}.")
+                return 1
+            try:
+                summary = portal.summarize_project(
+                    portal.extract_project(html_text)
+                )
+            except portal.PortalError as exc:
+                print(f"error: {exc}")
+                return 1
         init_db(args.db)
         with closing(connect(args.db)) as conn:
             if get_opportunity(conn, args.id) is None:
@@ -307,7 +332,8 @@ def main(argv: list[str] | None = None) -> int:
                 print(f"backfilled {key}: {value}")
             dest = Path(args.drop) / f"opp-{args.id}"
             results = portal.download_attachments(
-                summary["attachments"], dest
+                summary["attachments"], dest,
+                opener=opener, failure_hint=failure_hint,
             )
             failed = 0
             for item in results:
@@ -320,7 +346,7 @@ def main(argv: list[str] | None = None) -> int:
                     failed += 1
                     print(f"failed: {item['filename']} ({label}): {item['error']}")
                     continue
-                add_document(conn, args.id, item["path"], source="portal")
+                add_document(conn, args.id, item["path"], source=doc_source)
                 print(f"{item['status']}: {item['path']} ({label})")
             confirm_documents(conn, args.id)
         if failed:
@@ -360,7 +386,8 @@ def main(argv: list[str] | None = None) -> int:
         for item in checklist:
             verdict = item["verdict"] or "—"
             quote = f' "{item["quote"]}"' if item["quote"] else ""
-            print(f"{item['code']:8} {verdict:7}{quote}")
+            note = f" — {item['note']}" if item["note"] else ""
+            print(f"{item['code']:8} {verdict:7}{quote}{note}")
         return 0
     if args.command == "reqs":
         with closing(connect(args.db)) as conn:

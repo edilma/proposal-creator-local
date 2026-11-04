@@ -1,0 +1,244 @@
+{
+ "advertisementId": 16733,
+ "agencyAdNumber": "DOR RFP  #26/27-04",
+ "linkedAdNumber": null,
+ "openDate": "2026-08-20T21:44:32.000+00:00",
+ "publishOption": "Start Immediately",
+ "closeDate": "2026-11-20T23:00:00.000+00:00",
+ "responseDate": "2026-10-01T19:00:00.000+00:00",
+ "lastUpdateDate": "2026-10-27T19:49:52.000+00:00",
+ "publishedDate": "2026-08-20T21:44:32.000+00:00",
+ "type": "Request for Proposals",
+ "sequence": null,
+ "agency": "Department of Revenue (REV)",
+ "title": "Random Moment Sampling",
+ "description": "<p>*** 10/27/28 \u2013 Uploading Addem 2 toa revise the Procurement Schedule and to also provide the require 10-day notice of the Cost Opening which is a open public meeting. ***&nbsp;</p><p>*** 9/10/26 \u2013 Uploading Questions &amp; Answers Round 1, Addendum 1 and appendices 1 through 8 from the Procurement Library. ***&nbsp;</p><p>The Florida Department of Revenue, Child Support Program is requesting proposals from qualified Proposers to host a web-based Software as a Service (SAAS) to provide Random Moment Sampling (RMS) for the purpose of determining the percentage of time performing specific activities related to the Title IV-D Program. This RFP is for a sixty-six (66) month contract with five (5) one-year optional renewals.&nbsp;</p>",
+ "status": "OPEN",
+ "commodityCodes": [
+  {
+   "id": "42203607",
+   "value": "Computer aided detection software"
+  },
+  {
+   "id": "43231500",
+   "value": "Business function specific software"
+  },
+  {
+   "id": "43231505",
+   "value": "Human resources software"
+  },
+  {
+   "id": "43231516",
+   "value": "Audit software"
+  },
+  {
+   "id": "43231605",
+   "value": "Time accounting software"
+  },
+  {
+   "id": "43232201",
+   "value": "Content workflow software"
+  },
+  {
+   "id": "43232300",
+   "value": "Data management and query software"
+  },
+  {
+   "id": "43232600",
+   "value": "Industry specific software"
+  }
+ ],
+ "indicators": {
+  "agencyContactPeriod": false,
+  "disabilitiesAct": false,
+  "minorityEncouraged": false,
+  "preSolicitationConference": false,
+  "rightToReject": false
+ },
+ "docs": [
+  {
+   "version": null,
+   "description": "RFP Final",
+   "advertisementId": 16733,
+   "attachmentId": 39524,
+   "docFor": "advertisementDocuments",
+   "date": "2026-08-20T21:36:03.000+00:00",
+   "fileName": "RFP 26-27-04 FINAL.pdf",
+   "action": null
+  },
+  {
+   "version": null,
+   "description": "Q A Spreadsheet Round 1",
+   "advertisementId": 16733,
+   "attachmentId": 40205,
+   "docFor": "advertisementDocuments",
+   "date": "2026-09-10T20:09:02.000+00:00",
+   "fileName": "Q_A Spreadsheet Solicitation RMS_RFP26-27-04.pdf",
+   "action": null
+  },
+  {
+   "version": null,
+   "description": "Appendix 7",
+   "advertisementId": 16733,
+   "attachmentId": 40233,
+   "docFor": "advertisementDocuments",
+   "date": "2026-09-10T20:09:02.000+00:00",
+   "fileName": "APPENDIX 7 - PUR 1000.pdf",
+   "action": null
+  },
+  {
+   "version": null,
+   "description": "Appendix 6",
+   "advertisementId": 16733,
+   "attachmentId": 40232,
+   "docFor": "advertisementDocuments",
+   "date": "2026-09-10T20:09:02.000+00:00",
+   "fileName": "Appendix 6 Sample Contract.pdf",
+   "action": null
+  },
+  {
+   "version": null,
+   "description": "Appendix 5",
+   "advertisementId": 16733,
+   "attachmentId": 40231,
+   "docFor": "advertisementDocuments",
+   "date": "2026-09-10T20:09:02.000+00:00",
+   "fileName": "APPENDIX 5 -Sample - Permissions.pdf",
+   "action": null
+  },
+  {
+   "version": null,
+   "description": "Appendix 4",
+   "advertisementId": 16733,
+   "attachmentId": 40230,
+   "docFor": "advertisementDocuments",
+   "date": "2026-09-10T20:09:02.000+00:00",
+   "fileName": "APPENDIX 4 Roster by Office-Month.pdf",
+   "action": null
+  },
+  {
+   "version": null,
+   "description": "Appendix 3",
+   "advertisementId": 16733,
+   "attachmentId": 40229,
+   "docFor": "advertisementDocuments",
+   "date": "2026-09-10T20:09:02.000+00:00",
+   "fileName": "APPENDIX 3 - Sample Result Details by Office.pdf",
+   "action": null
+  },
+  {
+   "version": null,
+   "description": "Appendix 2",
+   "advertisementId": 16733,
+   "attachmentId": 40228,
+   "docFor": "advertisementDocuments",
+   "date": "2026-09-10T20:09:02.000+00:00",
+   "fileName": "APPENDIX 2 Response Rate by Office.pdf",
+   "action": null
+  },
+  {
+   "version": null,
+   "description": "Appendix 1",
+   "advertisementId": 16733,
+   "attachmentId": 40227,
+   "docFor": "advertisementDocuments",
+   "date": "2026-09-10T20:09:02.000+00:00",
+   "fileName": "APPENDIX 1 3- Month Allocations & Tabulations.pdf",
+   "action": null
+  },
+  {
+   "version": null,
+   "description": "Addendum 1",
+   "advertisementId": 16733,
+   "attachmentId": 40226,
+   "docFor": "advertisementDocuments",
+   "date": "2026-09-10T20:09:02.000+00:00",
+   "fileName": "Addendum 1.pdf",
+   "action": null
+  },
+  {
+   "version": null,
+   "description": "Appendix 8",
+   "advertisementId": 16733,
+   "attachmentId": 40234,
+   "docFor": "advertisementDocuments",
+   "date": "2026-09-10T20:09:03.000+00:00",
+   "fileName": "APPENDIX 8 - PUR1001.pdf",
+   "action": null
+  },
+  {
+   "version": null,
+   "description": "Q & A for # 13 & 28",
+   "advertisementId": 16733,
+   "attachmentId": 40288,
+   "docFor": "advertisementDocuments",
+   "date": "2026-09-11T19:52:15.000+00:00",
+   "fileName": "Q_A #13&28_ Solicitation RMS_RFP26-27-04.xlsx",
+   "action": null
+  },
+  {
+   "version": null,
+   "description": "Addendum 2",
+   "advertisementId": 16733,
+   "attachmentId": 40301,
+   "docFor": "advertisementDocuments",
+   "date": "2026-09-14T14:48:24.000+00:00",
+   "fileName": "Addendum 2.pdf",
+   "action": null
+  },
+  {
+   "version": null,
+   "description": "Q A Spreadsheet Round 2",
+   "advertisementId": 16733,
+   "attachmentId": 40503,
+   "docFor": "advertisementDocuments",
+   "date": "2026-09-21T13:08:16.000+00:00",
+   "fileName": "Q_A Spreadsheet Round 2_9-21-2026.pdf",
+   "action": null
+  },
+  {
+   "version": null,
+   "description": "Addendum 3",
+   "advertisementId": 16733,
+   "attachmentId": 41521,
+   "docFor": "advertisementDocuments",
+   "date": "2026-10-27T19:49:52.000+00:00",
+   "fileName": "RFP Addendum 3.pdf",
+   "action": null
+  }
+ ],
+ "advertisementAttachmentId": null,
+ "responseContact": {
+  "responseContact": "REDACTED",
+  "address1": "Building 2, Suite 1600",
+  "ph": "555-0100",
+  "email": "REDACTED",
+  "address2": "2450 Shumard Oak Boulevard",
+  "city": "Tallahassee",
+  "state": "FL",
+  "zip": "32399-0100"
+ },
+ "version": 8,
+ "uniqueName": "RFP-16733",
+ "canAdvertisementNotification": false,
+ "canAdvertisementAuditLog": false,
+ "srcDocId": null,
+ "vendorViewer": null,
+ "timeRemaining": 1461708881,
+ "submitted": false,
+ "organization": {
+  "organizationId": 30000034,
+  "entity": "730000",
+  "shortName": "REV",
+  "vbsAgency": true,
+  "version": 0,
+  "name": "Department of Revenue (REV)"
+ },
+ "sourcingWorkspaceID": null,
+ "needVersionUpdate": true,
+ "intendToParticipate": false,
+ "editable": false,
+ "withdrawn": false,
+ "deletable": false,
+ "favorite": false
+}

@@ -479,3 +479,52 @@ display value, the CLI label suffices).
 Revisit when: A page populates proposalDocuments (empty on the observed
 page -- map from a fresh save, never guess); addenda return (then decide
 whether the snapshot regenerates per addendum and needs re-fetching).
+
+## 026 - Verdicts explain themselves from stored evidence
+
+Decision: Blocker strings now name each blocking requirement's question and
+stored note ("Failed CAP-01 (Can the company perform the core work?):
+<reason>"), notes capped at 300 chars; the detail page adds a "Why this
+verdict" block showing question, verdict badge, verbatim quote, note, and
+verified/unverified badge per blocker (stored blocker text for
+deadline-driven verdicts); `evals` prints notes too. Composition is
+deterministic from stored rows -- no new model call, no schema change.
+Evals without question/note fall back to the old code-only format.
+Why: The business explanation already existed in stored notes but was shown
+nowhere; "Failed: CAP-01" forced a codebook lookup. Surfacing quote+note at
+the verdict answers "why can't we bid" where the owner looks.
+Alternatives: A second model call writing a prose summary (rejected -- cost,
+latency, and invention risk for what grounded notes already say); splitting
+audit suffixes out of notes (rejected -- the downgrade trail is honest and
+worth showing); codes-only on the list page (rejected -- one format
+everywhere is simpler; tables wrap).
+Revisit when: Explanations feel stitched-together enough to justify a
+grounded summary call, or notes outgrow display (then structure them).
+
+## 027 - MFMP fetch: live JSON plus type-checked downloads
+
+Decision: `fetch-portal <id> --mfmp <ad-id>` fetches the advertisement JSON
+live (`Accept: application/json` is the only header the endpoint needs),
+backfills identifiers/dates/URL through the shared apply_portal_data, and
+downloads every docs[] entry via the shared download_attachments with an
+MFMP opener. New code is one small module (mfmp.py: fetch, summarize,
+magic-byte checks) plus the CLI flag; backfill, downloading, attach, and
+confirm are all reused unchanged. Downloads use the exact XHR from the Network panel
+(/mfmp/bids/detail/attachment/download?attachmentId=...);
+every payload is magic-byte checked per extension so a wrong path fails
+loudly instead of saving HTML as a PDF. Quote gate now also reads .xlsx
+workbooks (stdlib zipfile+ElementTree: shared/inline strings, all sheets)
+because one Q&A file needs it; anything else unreadable behaves as before.
+Tests run against a redacted live-shape JSON fixture. Portal search for new
+solicitations stays out of scope -- email remains the discovery channel.
+Why: MFMP needs no browser step (unlike OpenGov), so direct fetch is both
+simpler and complete; reuse keeps one backfill/download/confirm path for
+both portals instead of two drifts.
+Alternatives: Separate fetch-mfmp command (rejected -- one lifecycle, one
+command, source flag); deriving the ad id from stored URLs (rejected --
+fails exactly when needed, e.g. numberless opp 9; explicit beats magic);
+new dependency for xlsx (rejected -- 40 lines of stdlib cover text cells).
+Revisit when: The download path is proven wrong live (one-line constant,
+then re-run); portal search becomes wanted (probe the search API from a
+network that reaches it); .xls/.doc binaries need reading (different
+formats, real parsers).

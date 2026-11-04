@@ -8,7 +8,7 @@ from io import StringIO
 from pathlib import Path
 
 from helpers import handle_request
-from proposal_creator import checks, db, intake
+from proposal_creator import checks, db, evals, intake
 from proposal_creator.__main__ import main as cli_main
 
 TODAY = date(2026, 10, 29)
@@ -160,6 +160,113 @@ class DetailPageTest(unittest.TestCase):
             response = handle_request(db_path, b"GET / HTTP/1.0\r\nHost: x\r\n\r\n")
         self.assertIn('href="/opp/1"', response)
         self.assertIn("Checks", response)
+
+    def test_detail_explains_cannot_bid(self) -> None:
+        with tempfile.TemporaryDirectory() as tmp:
+            db_path = Path(tmp) / "test.db"
+            db.init_db(db_path)
+            doc = Path(tmp) / "sol.txt"
+            doc.write_text("The Contractor shall repair bicycles.", encoding="utf-8")
+            req_path = Path(tmp) / "reqs.json"
+            req_path.write_text(
+                '[{"code": "CAP-01", "category": "c",'
+                ' "question": "Can the company perform the core work?",'
+                ' "guidance": ""}]',
+                encoding="utf-8",
+            )
+            with closing(db.connect(db_path)) as conn:
+                evals.load_requirements(conn, req_path)
+                opp_id = db.add_opportunity(conn, {
+                    "source": "drop", "external_id": None, "title": "Bikes",
+                    "agency": None, "url": None, "open_date": None,
+                    "close_date": None, "status": "new",
+                    "verdict": "CANNOT BID",
+                    "blockers": "Failed CAP-01 (old format).",
+                    "document_path": str(doc), "notes": None,
+                })
+                evals.set_evaluation(
+                    conn, opp_id, "CAP-01", "FAIL",
+                    quote="The Contractor shall repair bicycles.",
+                    note="Core work is bicycle repair; company does software.",
+                )
+            response = handle_request(
+                db_path,
+                f"GET /opp/{opp_id} HTTP/1.0\r\nHost: x\r\n\r\n".encode(),
+            )
+        self.assertIn("Why this verdict", response)
+        self.assertIn("Can the company perform the core work?", response)
+        self.assertIn("The Contractor shall repair bicycles.", response)
+        self.assertIn("company does software", response)
+        self.assertIn("verified", response)
+
+    def test_detail_verdict_block_escapes(self) -> None:
+        with tempfile.TemporaryDirectory() as tmp:
+            db_path = Path(tmp) / "test.db"
+            db.init_db(db_path)
+            req_path = Path(tmp) / "reqs.json"
+            req_path.write_text(
+                '[{"code": "CAP-01", "category": "c",'
+                ' "question": "q?", "guidance": ""}]',
+                encoding="utf-8",
+            )
+            with closing(db.connect(db_path)) as conn:
+                evals.load_requirements(conn, req_path)
+                opp_id = db.add_opportunity(conn, {
+                    "source": "drop", "external_id": None, "title": "T",
+                    "agency": None, "url": None, "open_date": None,
+                    "close_date": None, "status": "new",
+                    "verdict": "NEEDS INFO", "blockers": "x",
+                    "document_path": None, "notes": None,
+                })
+                evals.set_evaluation(
+                    conn, opp_id, "CAP-01", "UNKNOWN",
+                    note="<script>alert(1)</script>",
+                )
+            response = handle_request(
+                db_path,
+                f"GET /opp/{opp_id} HTTP/1.0\r\nHost: x\r\n\r\n".encode(),
+            )
+        self.assertIn("Needs info", response)
+        self.assertNotIn("<script>", response)
+        self.assertIn("&lt;script&gt;", response)
+
+    def test_detail_hides_verdict_block_when_can_bid(self) -> None:
+        with tempfile.TemporaryDirectory() as tmp:
+            db_path = Path(tmp) / "test.db"
+            db.init_db(db_path)
+            with closing(db.connect(db_path)) as conn:
+                opp_id = db.add_opportunity(conn, {
+                    "source": "drop", "external_id": None, "title": "T",
+                    "agency": None, "url": None, "open_date": None,
+                    "close_date": None, "status": "new",
+                    "verdict": "CAN BID", "blockers": "",
+                    "document_path": None, "notes": None,
+                })
+            response = handle_request(
+                db_path,
+                f"GET /opp/{opp_id} HTTP/1.0\r\nHost: x\r\n\r\n".encode(),
+            )
+        self.assertNotIn("Why this verdict", response)
+
+    def test_detail_deadline_verdict_shows_blocker(self) -> None:
+        with tempfile.TemporaryDirectory() as tmp:
+            db_path = Path(tmp) / "test.db"
+            db.init_db(db_path)
+            with closing(db.connect(db_path)) as conn:
+                opp_id = db.add_opportunity(conn, {
+                    "source": "drop", "external_id": None, "title": "T",
+                    "agency": None, "url": None, "open_date": None,
+                    "close_date": "2026-01-01", "status": "new",
+                    "verdict": "CANNOT BID",
+                    "blockers": "Closed 300 days ago (2026-01-01).",
+                    "document_path": None, "notes": None,
+                })
+            response = handle_request(
+                db_path,
+                f"GET /opp/{opp_id} HTTP/1.0\r\nHost: x\r\n\r\n".encode(),
+            )
+        self.assertIn("Why this verdict", response)
+        self.assertIn("Closed 300 days ago", response)
 
     def test_detail_check_sees_table_attachments(self) -> None:
         with tempfile.TemporaryDirectory() as tmp:

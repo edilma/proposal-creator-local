@@ -19,6 +19,7 @@ from .db import DEFAULT_DB_PATH, connect, get_opportunity, init_db
 from .draft import DEFAULT_DRAFTS_DIR, draft_paths
 from .evals import list_checklist
 from .intake import list_documents
+from .rollup import CANNOT_BID, NEEDS_INFO
 
 HOST = "127.0.0.1"
 PORT = 8000
@@ -281,6 +282,38 @@ def _render_documents_section(opp_id: int, documents: list | None) -> str:
     )
 
 
+def _render_verdict_section(
+    row: sqlite3.Row, checklist: list[sqlite3.Row]
+) -> str:
+    """Why this verdict, in business-owner language (stored evidence only)."""
+    if row["verdict"] == CANNOT_BID:
+        wanted, badge, css = "FAIL", "Failed", "fail"
+    elif row["verdict"] == NEEDS_INFO:
+        wanted, badge, css = "UNKNOWN", "Needs info", "warn"
+    else:
+        return ""
+    items = [item for item in checklist if item["verdict"] == wanted]
+    if not items:
+        # Deadline-driven verdicts carry no evaluations; the stored
+        # blocker already says it in plain words.
+        if row["blockers"]:
+            return f"<h2>Why this verdict</h2><p>{_text(row['blockers'])}</p>"
+        return ""
+    parts = ["<h2>Why this verdict</h2>"]
+    for item in items:
+        evidence = "verified" if item["verified"] else "unverified"
+        quote = item["quote"] or "No quote recorded."
+        note = item["note"] or "No reason recorded."
+        parts.append(
+            f"<p><strong>{_text(item['question'])}</strong>"
+            f' <span class="{css}">{badge}</span>'
+            f" <span>({evidence})</span></p>"
+            f"<p>Requirement says: “{_text(quote)}”</p>"
+            f"<p>Why: {_text(note)}</p>"
+        )
+    return "\n".join(parts)
+
+
 def render_detail(
     row: sqlite3.Row,
     checklist: list[sqlite3.Row],
@@ -328,6 +361,7 @@ def render_detail(
     draft_section = _render_draft_section(row["id"], drafts_dir)
     save_form = _render_save_answer_form(row["id"])
     docs_section = _render_documents_section(row["id"], documents)
+    verdict_section = _render_verdict_section(row, checklist)
     return f"""<!doctype html>
 <html lang="en">
 <head><meta charset="utf-8"><title>{_text(row["title"])}</title>
@@ -336,6 +370,7 @@ def render_detail(
 <p><a href="/">← All opportunities</a></p>
 <h1>{_text(row["title"])}</h1>
 <dl>{fields}</dl>
+{verdict_section}
 {docs_section}
 <h2>Checks</h2>
 <table><thead><tr><th>Level</th><th>Check</th><th>Detail</th></tr></thead>

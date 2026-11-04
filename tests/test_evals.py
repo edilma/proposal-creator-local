@@ -82,6 +82,40 @@ def build_pdf_bytes(text_lines: str | list) -> bytes:
     return b"".join(out)
 
 
+def build_xlsx_bytes(sheets: dict | None = None) -> bytes:
+    """Minimal .xlsx zip: shared strings, inline strings, numbers."""
+    import io
+    import zipfile
+
+    ns = "http://schemas.openxmlformats.org/spreadsheetml/2006/main"
+    if sheets is None:
+        sheets = {
+            "xl/worksheets/sheet1.xml": (
+                f'<worksheet xmlns="{ns}"><sheetData>'
+                '<row><c t="s"><v>0</v></c><c><v>42</v></c></row>'
+                '<row><c t="inlineStr"><is><t>Inline answer</t></is></c></row>'
+                "</sheetData></worksheet>"
+            ),
+            "xl/worksheets/sheet2.xml": (
+                f'<worksheet xmlns="{ns}"><sheetData>'
+                '<row><c t="s"><v>1</v></c></row>'
+                "</sheetData></worksheet>"
+            ),
+        }
+    strings = (
+        f'<sst xmlns="{ns}">'
+        "<si><t>Question thirteen</t></si>"
+        "<si><t>Second</t><t> sheet here</t></si>"
+        "</sst>"
+    )
+    buf = io.BytesIO()
+    with zipfile.ZipFile(buf, "w") as book:
+        book.writestr("xl/sharedStrings.xml", strings)
+        for name, xml in sheets.items():
+            book.writestr(name, xml)
+    return buf.getvalue()
+
+
 def make_db(
     tmp: str,
     doc_text: str | None = DOC_TEXT,
@@ -211,6 +245,26 @@ class ArtifactToleranceTest(unittest.TestCase):
             blank = Path(tmp) / "blank.pdf"
             blank.write_bytes(build_pdf_bytes([]))
             self.assertIsNone(evals.read_doc_text(str(blank)))
+
+    def test_read_doc_text_supports_xlsx(self) -> None:
+        with tempfile.TemporaryDirectory() as tmp:
+            book = Path(tmp) / "qa.xlsx"
+            book.write_bytes(build_xlsx_bytes())
+            text = evals.read_doc_text(str(book))
+            assert text is not None
+            for needle in ("Question thirteen", "Inline answer",
+                           "42", "Second sheet here"):
+                self.assertIn(needle, text)
+
+    def test_read_doc_text_rejects_broken_xlsx(self) -> None:
+        with tempfile.TemporaryDirectory() as tmp:
+            broken = Path(tmp) / "broken.xlsx"
+            broken.write_bytes(b"PK not really a workbook")
+            self.assertIsNone(evals.read_doc_text(str(broken)))
+            empty = Path(tmp) / "empty.xlsx"
+            empty.write_bytes(build_xlsx_bytes(sheets={"xl/worksheets/sheet1.xml":
+                '<worksheet xmlns="http://x/s"><sheetData/></worksheet>'}))
+            self.assertIsNone(evals.read_doc_text(str(empty)))
 
 
 class GateTest(unittest.TestCase):
@@ -377,12 +431,14 @@ class EvalCommandTest(unittest.TestCase):
             code, _ = self.run_cli(
                 db_path, "set-eval", str(opp_id), "CERT-01", "PASS",
                 "--quote", "maintain SOC 2 Type II compliance.",
+                "--note", "Profile shows SOC 2 Type II.",
             )
             self.assertEqual(code, 0)
             code, out = self.run_cli(db_path, "evals", str(opp_id))
             self.assertEqual(code, 0)
             self.assertIn("CERT-01", out)
             self.assertIn("PASS", out)
+            self.assertIn("Profile shows SOC 2 Type II.", out)
 
     def test_cli_rejects_invented_quote(self) -> None:
         with tempfile.TemporaryDirectory() as tmp:

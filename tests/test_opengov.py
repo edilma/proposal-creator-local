@@ -292,7 +292,8 @@ class FetchPortalCommandTest(unittest.TestCase):
                     "blockers": None, "document_path": None, "notes": None,
                 })
 
-            def fake_download(attachments, dest_dir, opener=None):
+            def fake_download(attachments, dest_dir, opener=None,
+                              failure_hint=""):
                 assert len(attachments) == 2
                 assert [a["kind"] for a in attachments] == [
                     "attachment", "generated",
@@ -350,7 +351,8 @@ class FetchPortalCommandTest(unittest.TestCase):
                 kept.write_bytes(b"already here")
                 intake.add_document(conn, opp_id, str(kept), source="portal")
 
-            def fake_download(attachments, dest_dir, opener=None):
+            def fake_download(attachments, dest_dir, opener=None,
+                              failure_hint=""):
                 results = []
                 for item in attachments:
                     path = Path(dest_dir) / item["filename"]
@@ -396,7 +398,7 @@ class FetchPortalCommandTest(unittest.TestCase):
                 })
             with patch.object(
                 opengov, "download_attachments",
-                lambda a, d, opener=None: [
+                lambda a, d, opener=None, failure_hint="": [
                     {"filename": "a.pdf", "path": "x",
                      "status": "failed", "error": "gone stale — re-save"}
                 ],

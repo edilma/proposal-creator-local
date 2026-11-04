@@ -130,6 +130,86 @@ class ComputeTest(unittest.TestCase):
     def test_no_evaluations_leaves_unset(self) -> None:
         self.assertEqual(rollup.compute_rollup({"close_date": None}, [], TODAY), (None, ""))
 
+    def test_enriched_fail_names_question_and_reason(self) -> None:
+        verdict, blocker = rollup.compute_rollup(
+            {"close_date": None},
+            [{
+                "requirement_code": "CAP-01",
+                "verdict": "FAIL",
+                "question": "Can the company perform the core work?",
+                "note": "Core work is bicycle repair; company does software",
+            }],
+            TODAY,
+        )
+        self.assertEqual(verdict, "CANNOT BID")
+        self.assertEqual(
+            blocker,
+            "Failed CAP-01 (Can the company perform the core work?):"
+            " Core work is bicycle repair; company does software.",
+        )
+
+    def test_multiple_blockers_joined(self) -> None:
+        _, blocker = rollup.compute_rollup(
+            {"close_date": None},
+            [
+                {"requirement_code": "BBB-02", "verdict": "FAIL",
+                 "question": "Second?", "note": "second reason"},
+                {"requirement_code": "AAA-01", "verdict": "FAIL",
+                 "question": "First?", "note": "first reason"},
+            ],
+            TODAY,
+        )
+        self.assertEqual(
+            blocker,
+            "Failed AAA-01 (First?): first reason;"
+            " Failed BBB-02 (Second?): second reason.",
+        )
+
+    def test_long_note_capped(self) -> None:
+        _, blocker = rollup.compute_rollup(
+            {"close_date": None},
+            [{
+                "requirement_code": "AAA-01",
+                "verdict": "FAIL",
+                "question": "q?",
+                "note": "x" * 400,
+            }],
+            TODAY,
+        )
+        self.assertTrue(blocker.endswith("…"))
+        self.assertLess(len(blocker), len("Failed AAA-01 (q?): ") + 400)
+
+    def test_question_without_note(self) -> None:
+        _, blocker = rollup.compute_rollup(
+            {"close_date": None},
+            [{
+                "requirement_code": "AAA-01",
+                "verdict": "FAIL",
+                "question": "q?",
+                "note": "",
+            }],
+            TODAY,
+        )
+        self.assertEqual(blocker, "Failed AAA-01 (q?).")
+
+    def test_needs_info_enriched(self) -> None:
+        verdict, blocker = rollup.compute_rollup(
+            {"close_date": None},
+            [{
+                "requirement_code": "EXP-01",
+                "verdict": "UNKNOWN",
+                "question": "Enough experience?",
+                "note": "No past-performance minimums found",
+            }],
+            TODAY,
+        )
+        self.assertEqual(verdict, "NEEDS INFO")
+        self.assertEqual(
+            blocker,
+            "Needs info EXP-01 (Enough experience?):"
+            " No past-performance minimums found.",
+        )
+
 
 class ApplyTest(unittest.TestCase):
     def test_apply_writes_verdict_and_blockers(self) -> None:
@@ -138,8 +218,27 @@ class ApplyTest(unittest.TestCase):
             with closing(db.connect(db_path)) as conn:
                 set_all(conn, opp_id, {"AAA-01": "PASS", "BBB-02": "FAIL"})
                 verdict, blocker = rollup.apply_rollup(conn, opp_id, TODAY)
-                self.assertEqual((verdict, blocker), ("CANNOT BID", "Failed: BBB-02."))
-                self.assertEqual(row(conn, opp_id), ("CANNOT BID", "Failed: BBB-02."))
+                self.assertEqual(
+                    (verdict, blocker), ("CANNOT BID", "Failed BBB-02 (q?).")
+                )
+                self.assertEqual(
+                    row(conn, opp_id), ("CANNOT BID", "Failed BBB-02 (q?).")
+                )
+
+    def test_apply_includes_stored_note(self) -> None:
+        with tempfile.TemporaryDirectory() as tmp:
+            db_path, opp_id = make_db(tmp)
+            with closing(db.connect(db_path)) as conn:
+                evals.set_evaluation(
+                    conn, opp_id, "BBB-02", "FAIL",
+                    note="Company does software, not bicycles",
+                )
+                _, blocker = rollup.apply_rollup(conn, opp_id, TODAY)
+                self.assertEqual(
+                    blocker,
+                    "Failed BBB-02 (q?):"
+                    " Company does software, not bicycles.",
+                )
 
     def test_apply_with_no_evaluations_writes_nothing(self) -> None:
         with tempfile.TemporaryDirectory() as tmp:

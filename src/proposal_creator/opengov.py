@@ -188,13 +188,13 @@ def download_attachments(
     attachments: list[dict],
     dest_dir: Path | str,
     opener: Callable[[str], bytes] | None = None,
+    failure_hint: str = "the page save may be stale — re-save it, signed URLs expire",
 ) -> list[dict]:
     """Fetch each attachment URL into `dest_dir`.
 
     Returns per-file results ({filename, path, status, error}); a file is
     never half-written, existing names are kept as-is, same-name batch
-    mates are numbered, and failures name the fix (re-save the page:
-    signed URLs expire).
+    mates are numbered, and failures name the fix (`failure_hint`).
     """
     opener = opener or _fetch_bytes
     dest_dir = Path(dest_dir)
@@ -229,10 +229,7 @@ def download_attachments(
             results.append({
                 "filename": filename, "path": str(path), "kind": kind,
                 "status": "failed",
-                "error": (
-                    f"download failed ({exc}); the page save may be stale —"
-                    " re-save it, signed URLs expire."
-                ),
+                "error": f"download failed ({exc}); {failure_hint}.",
             })
             continue
         tmp_path = path.with_name(path.name + ".part")
@@ -265,8 +262,8 @@ def apply_portal_data(
     filled = {
         key: summary[key]
         for key in (
-            "portal_number", "agency_number", "title", "open_date",
-            "close_date",
+            "portal_number", "agency_number", "title", "agency", "url",
+            "open_date", "close_date",
         )
         if summary.get(key) and not row[key]
     }

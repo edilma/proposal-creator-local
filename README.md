@@ -53,17 +53,21 @@ Then open http://127.0.0.1:8000/ in your browser.
   scripts, so the browser step stays human) and downloads every file into
   `drop/opp-<id>/`: the generated project document plus all attachments.
   Re-run when links go stale: signed URLs expire, and failures say to
-  re-save the page.
+  re-save the page. `fetch-portal <id> --mfmp <ad-id>` does the same for
+  MyFloridaMarketPlace live over its JSON endpoint (no save step needed),
+  downloading every advertisement document with type-checked bytes.
 - `reqs` lists the requirement checklist (from `data/requirements_gov.json`).
   `set-eval <id> <code> <PASS|FAIL|UNKNOWN|N/A> --quote "..."` records one
   judgment; `evals <id>` shows the checklist. The detail page shows it too.
 - `rollup <id>` recomputes the overall verdict from the stored evaluations
   (CAN BID / NEEDS INFO / CANNOT BID, no model call) and writes it to the
   record's Verdict/Blockers fields, shown on both pages. `evaluate` does this
-  automatically at the end of each run.
+  automatically at the end of each run. The blocker text names each blocking
+  requirement's question and stored reason, and the detail page adds a "Why
+  this verdict" block with the quote and evidence behind each one.
 - The quote gate: PASS requires a quote, and any quote is refused unless it
   appears verbatim in the solicitation — when the document text is readable
-  (`.txt`/`.md`/text `.pdf`). "Verbatim" is tested on normalized text
+  (`.txt`/`.md`/text `.pdf`/`.xlsx`). "Verbatim" is tested on normalized text
   (lowercase, alphanumeric only), so PDF artifacts like stray spaces and
   line-break hyphens don't cause false refusals — but words and numbers must
   still match exactly. Other formats, and PDFs with no extractable text
@@ -145,6 +149,7 @@ uv run python -m unittest discover -s tests -v
 - `src/proposal_creator/notices.py` — email notice parsing, matching, dedup
 - `src/proposal_creator/gmail.py` — read-only Gmail client (stdlib OAuth)
 - `src/proposal_creator/opengov.py` — saved-page parsing + attachment download
+- `src/proposal_creator/mfmp.py` — MFMP advertisement fetch + summarize
 - `src/proposal_creator/evals.py` — requirements, evaluations, quote gate
 - `src/proposal_creator/config.py` — model settings from `.env` / environment
 - `src/proposal_creator/model.py` — OpenAI-compatible client (stdlib only)

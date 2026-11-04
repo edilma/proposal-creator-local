@@ -3,8 +3,8 @@
 Enforces the non-negotiable at the storage layer: a PASS is stored only with
 a quote, and any stored quote must appear verbatim in the solicitation text
 when that text is available. Quote verification supports plain-text documents
-(.txt/.md) and text PDFs; anything else — or a PDF with no extractable text,
-such as a scan — stores the quote as unverified.
+(.txt/.md), text PDFs, and .xlsx workbooks; anything else — or a file with no
+extractable text, such as a scan — stores the quote as unverified.
 "Verbatim" is tested on normalized forms (lowercase, alphanumeric only) so PDF
 extraction artifacts — stray spaces, line-break hyphens, punctuation noise —
 don't cause false refusals. The match itself is still an exact substring:
@@ -14,14 +14,17 @@ only formatting is forgiven, never words or numbers.
 from __future__ import annotations
 
 import json
+import re
 import sqlite3
+import zipfile
+import xml.etree.ElementTree as ET
 from pathlib import Path
 
 from pypdf import PdfReader
 
 DEFAULT_REQUIREMENTS_PATH = Path("data/requirements_gov.json")
 VERDICTS = ("PASS", "FAIL", "UNKNOWN", "N/A")
-READABLE_SUFFIXES = {".txt", ".md", ".markdown", ".pdf"}
+READABLE_SUFFIXES = {".txt", ".md", ".markdown", ".pdf", ".xlsx"}
 
 
 def normalize(text: str) -> str:
@@ -50,6 +53,8 @@ def read_doc_text(document_path: str | None) -> str | None:
         return None
     if path.suffix.lower() == ".pdf":
         return _read_pdf_text(path)
+    if path.suffix.lower() == ".xlsx":
+        return _read_xlsx_text(path)
     try:
         return path.read_text(encoding="utf-8")
     except (OSError, UnicodeDecodeError):
@@ -66,6 +71,68 @@ def _read_pdf_text(path: Path) -> str | None:
     except Exception:
         return None
     return text if text.strip() else None
+
+
+def _read_xlsx_text(path: Path) -> str | None:
+    """Cell text of every sheet, rows joined (stdlib zipfile + ElementTree).
+
+    Shared strings, inline strings, and raw values (numbers, dates);
+    anything malformed reads as unverifiable, like a bad PDF.
+    """
+    try:
+        with zipfile.ZipFile(path) as book:
+            shared: list[str] = []
+            if "xl/sharedStrings.xml" in book.namelist():
+                strings_root = ET.fromstring(
+                    book.read("xl/sharedStrings.xml")
+                )
+                for item in strings_root.iter():
+                    if item.tag.endswith("}si"):
+                        shared.append("".join(
+                            node.text or ""
+                            for node in item.iter()
+                            if node.tag.endswith("}t")
+                        ))
+            sheets = sorted(
+                name for name in book.namelist()
+                if re.fullmatch(r"xl/worksheets/sheet\d+\.xml", name)
+            )
+            lines = []
+            for sheet in sheets:
+                sheet_root = ET.fromstring(book.read(sheet))
+                for row in sheet_root.iter():
+                    if not row.tag.endswith("}row"):
+                        continue
+                    cells = []
+                    for cell in row:
+                        if not cell.tag.endswith("}c"):
+                            continue
+                        cells.append(_cell_text(cell, shared))
+                    line = " ".join(filter(None, cells)).strip()
+                    if line:
+                        lines.append(line)
+    except Exception:
+        return None
+    return "\n".join(lines) if lines else None
+
+
+def _cell_text(cell: ET.Element, shared: list[str]) -> str:
+    """Text of one spreadsheet cell: shared, inline, or raw value."""
+    for child in cell:
+        if child.tag.endswith("}is"):
+            return "".join(
+                node.text or ""
+                for node in child.iter() if node.tag.endswith("}t")
+            ).strip()
+        if child.tag.endswith("}v") and child.text:
+            value = child.text.strip()
+            if cell.get("t") == "s":
+                try:
+                    return shared[int(value)]
+                except (ValueError, IndexError):
+                    return ""
+            return value
+    return ""
 
 
 def read_opp_text(conn: sqlite3.Connection, opp_id: int) -> str | None:
