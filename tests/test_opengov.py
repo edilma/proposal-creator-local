@@ -63,14 +63,43 @@ class ExtractTest(unittest.TestCase):
         )
         self.assertEqual(summary["open_date"], "2026-11-02")
         self.assertEqual(summary["close_date"], "2026-12-03")
-        self.assertEqual(len(summary["attachments"]), 1)
+        self.assertEqual(len(summary["attachments"]), 2)
         attachment = summary["attachments"][0]
+        self.assertEqual(attachment["kind"], "attachment")
         self.assertEqual(
             attachment["filename"],
             "RFP_Y26-1015-JA_WOT_Bicycle_Concession_-_WGS.pdf",
         )
         self.assertEqual(attachment["appendix"], "A")
         self.assertTrue(attachment["url"].startswith("https://"))
+        generated = summary["attachments"][1]
+        self.assertEqual(generated["kind"], "generated")
+        self.assertEqual(
+            generated["filename"],
+            "West_Orange_Trail_Bicycle_Concession_-_Winter_Garden_Station.pdf",
+        )
+        self.assertTrue(generated["url"].startswith("https://"))
+
+    def test_generated_variants_tolerated(self) -> None:
+        base = {"id": 1, "attachments": [
+            {"filename": "a.pdf", "url": "https://x/a"},
+        ]}
+        self.assertEqual(len(opengov.summarize_project(base)["attachments"]), 1)
+        none_case = dict(base, documentAttachment=None)
+        self.assertEqual(
+            len(opengov.summarize_project(none_case)["attachments"]), 1
+        )
+        list_case = dict(base, documentAttachment=[
+            {"filename": "g.pdf", "url": "https://x/g"},
+            "junk",
+        ])
+        items = opengov.summarize_project(list_case)["attachments"]
+        self.assertEqual(len(items), 2)
+        self.assertEqual(items[1]["kind"], "generated")
+        junk_case = dict(base, documentAttachment="junk")
+        self.assertEqual(
+            len(opengov.summarize_project(junk_case)["attachments"]), 1
+        )
 
     def test_missing_blob_rejected(self) -> None:
         for bad in ("<html>empty</html>", "window.__data="):
@@ -181,6 +210,30 @@ class DownloadTest(unittest.TestCase):
             self.assertEqual(results[0]["status"], "failed")
             self.assertEqual(list(dest.glob("*")), [])
 
+    def test_same_name_batch_mates_numbered(self) -> None:
+        with tempfile.TemporaryDirectory() as tmp:
+            dest = Path(tmp) / "dest"
+            results = opengov.download_attachments(
+                [
+                    {"filename": "doc.pdf", "url": "https://x/1",
+                     "appendix": "A", "extension": "pdf", "kind": "attachment"},
+                    {"filename": "doc.pdf", "url": "https://x/2",
+                     "appendix": "", "extension": "pdf", "kind": "generated"},
+                ],
+                dest,
+                opener=lambda url: f"bytes for {url}".encode(),
+            )
+            self.assertEqual(
+                [r["filename"] for r in results], ["doc.pdf", "doc (2).pdf"]
+            )
+            self.assertEqual(
+                [r["status"] for r in results], ["downloaded", "downloaded"]
+            )
+            self.assertEqual(
+                (dest / "doc (2).pdf").read_bytes(), b"bytes for https://x/2"
+            )
+            self.assertEqual(results[1]["kind"], "generated")
+
 
 class ApplyPortalDataTest(unittest.TestCase):
     def test_backfill_fills_empties_only(self) -> None:
@@ -240,12 +293,21 @@ class FetchPortalCommandTest(unittest.TestCase):
                 })
 
             def fake_download(attachments, dest_dir, opener=None):
-                assert len(attachments) == 1
-                path = Path(dest_dir) / attachments[0]["filename"]
+                assert len(attachments) == 2
+                assert [a["kind"] for a in attachments] == [
+                    "attachment", "generated",
+                ]
                 Path(dest_dir).mkdir(parents=True, exist_ok=True)
-                path.write_bytes(b"fake pdf")
-                return [{"filename": path.name, "path": str(path),
-                         "status": "downloaded", "error": None}]
+                results = []
+                for item in attachments:
+                    path = Path(dest_dir) / item["filename"]
+                    path.write_bytes(b"fake pdf")
+                    results.append({
+                        "filename": path.name, "path": str(path),
+                        "kind": item["kind"],
+                        "status": "downloaded", "error": None,
+                    })
+                return results
 
             with patch.object(
                 opengov, "download_attachments", fake_download
@@ -259,13 +321,67 @@ class FetchPortalCommandTest(unittest.TestCase):
             self.assertIn("backfilled agency_number: Y26-1015", out)
             self.assertIn("backfilled close_date: 2026-12-03", out)
             self.assertIn("downloaded:", out)
+            self.assertIn("(attachment)", out)
+            self.assertIn("(project document)", out)
             with closing(db.connect(db_path)) as conn:
                 row = db.get_opportunity(conn, opp_id)
                 assert row is not None
                 self.assertEqual(row["portal_number"], "322586")
                 docs = intake.list_documents(conn, opp_id)
-                self.assertEqual(len(docs), 1)
+                self.assertEqual(len(docs), 2)
                 self.assertEqual(docs[0]["source"], "portal")
+
+    def test_rerun_downloads_only_missing(self) -> None:
+        with tempfile.TemporaryDirectory() as tmp:
+            db_path = Path(tmp) / "test.db"
+            db.init_db(db_path)
+            drop = Path(tmp) / "drop"
+            with closing(db.connect(db_path)) as conn:
+                opp_id = db.add_opportunity(conn, {
+                    "source": "opengov", "external_id": None,
+                    "title": "West Orange Trail", "agency": "Orange County",
+                    "url": "https://portal/x", "open_date": None,
+                    "close_date": None, "status": "new", "verdict": None,
+                    "blockers": None, "document_path": None, "notes": None,
+                })
+                folder = drop / f"opp-{opp_id}"
+                folder.mkdir(parents=True)
+                kept = folder / "RFP_Y26-1015-JA_WOT_Bicycle_Concession_-_WGS.pdf"
+                kept.write_bytes(b"already here")
+                intake.add_document(conn, opp_id, str(kept), source="portal")
+
+            def fake_download(attachments, dest_dir, opener=None):
+                results = []
+                for item in attachments:
+                    path = Path(dest_dir) / item["filename"]
+                    if path.exists():
+                        results.append({
+                            "filename": path.name, "path": str(path),
+                            "kind": item["kind"],
+                            "status": "skipped-exists", "error": None,
+                        })
+                    else:
+                        path.write_bytes(b"fake pdf")
+                        results.append({
+                            "filename": path.name, "path": str(path),
+                            "kind": item["kind"],
+                            "status": "downloaded", "error": None,
+                        })
+                return results
+
+            with patch.object(
+                opengov, "download_attachments", fake_download
+            ):
+                code, out = self.run_cli(
+                    {}, "--db", str(db_path), "fetch-portal", str(opp_id),
+                    "--from-file", str(FIXTURE), "--drop", str(drop),
+                )
+            self.assertEqual(code, 0)
+            self.assertIn("skipped-exists:", out)
+            self.assertIn("downloaded:", out)
+            with closing(db.connect(db_path)) as conn:
+                docs = intake.list_documents(conn, opp_id)
+                self.assertEqual(len(docs), 2)
 
     def test_failed_download_keeps_backfill(self) -> None:
         with tempfile.TemporaryDirectory() as tmp:

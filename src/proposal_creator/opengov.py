@@ -109,18 +109,36 @@ def _day(value: object) -> str | None:
         return None
 
 
+def _summary_item(item: dict, kind: str) -> dict:
+    return {
+        "kind": kind,
+        "filename": item.get("filename") or "",
+        "url": item.get("url") or "",
+        "appendix": item.get("appendixId") or "",
+        "extension": item.get("fileExtension") or "",
+    }
+
+
 def summarize_project(project: dict) -> dict:
-    """Identifiers, dates, and attachments distilled from a project record."""
+    """Identifiers, dates, and attachments distilled from a project record.
+
+    Both file sources are enumerated: the uploaded `attachments` list and
+    the generated `documentAttachment` record (dict, list, or absent).
+    """
     attachments = []
     for item in project.get("attachments") or []:
-        if not isinstance(item, dict):
-            continue
-        attachments.append({
-            "filename": item.get("filename") or "",
-            "url": item.get("url") or "",
-            "appendix": item.get("appendixId") or "",
-            "extension": item.get("fileExtension") or "",
-        })
+        if isinstance(item, dict):
+            attachments.append(_summary_item(item, "attachment"))
+    generated = project.get("documentAttachment")
+    if isinstance(generated, dict):
+        candidates = [generated]
+    elif isinstance(generated, list):
+        candidates = generated
+    else:
+        candidates = []
+    for item in candidates:
+        if isinstance(item, dict):
+            attachments.append(_summary_item(item, "generated"))
     portal_id = project.get("id")
     return {
         "portal_number": str(portal_id) if portal_id is not None else None,
@@ -150,6 +168,22 @@ def _fetch_bytes(url: str) -> bytes:
         return response.read()
 
 
+def _dedupe_name(filename: str, taken: set[str]) -> str:
+    """Append " (2)", " (3)", ... when a batch reuses a filename."""
+    if filename.casefold() not in taken:
+        taken.add(filename.casefold())
+        return filename
+    stem, dot, suffix = filename.rpartition(".")
+    if not stem:
+        stem, dot, suffix = filename, "", ""
+    n = 2
+    while f"{stem} ({n}){dot}{suffix}".casefold() in taken:
+        n += 1
+    unique = f"{stem} ({n}){dot}{suffix}"
+    taken.add(unique.casefold())
+    return unique
+
+
 def download_attachments(
     attachments: list[dict],
     dest_dir: Path | str,
@@ -158,28 +192,34 @@ def download_attachments(
     """Fetch each attachment URL into `dest_dir`.
 
     Returns per-file results ({filename, path, status, error}); a file is
-    never half-written, existing names are kept as-is, and failures name
-    the fix (re-save the page: signed URLs expire).
+    never half-written, existing names are kept as-is, same-name batch
+    mates are numbered, and failures name the fix (re-save the page:
+    signed URLs expire).
     """
     opener = opener or _fetch_bytes
     dest_dir = Path(dest_dir)
     dest_dir.mkdir(parents=True, exist_ok=True)
     results = []
+    taken: set[str] = set()
     for n, item in enumerate(attachments, 1):
-        filename = safe_filename(
-            item.get("filename") or "", item.get("appendix") or "",
-            item.get("extension") or "", n,
+        filename = _dedupe_name(
+            safe_filename(
+                item.get("filename") or "", item.get("appendix") or "",
+                item.get("extension") or "", n,
+            ),
+            taken,
         )
         path = dest_dir / filename
+        kind = item.get("kind") or "attachment"
         if not item.get("url"):
             results.append({
-                "filename": filename, "path": str(path),
+                "filename": filename, "path": str(path), "kind": kind,
                 "status": "failed", "error": "no download URL in the page",
             })
             continue
         if path.exists():
             results.append({
-                "filename": filename, "path": str(path),
+                "filename": filename, "path": str(path), "kind": kind,
                 "status": "skipped-exists", "error": None,
             })
             continue
@@ -187,7 +227,7 @@ def download_attachments(
             data = opener(item["url"])
         except Exception as exc:
             results.append({
-                "filename": filename, "path": str(path),
+                "filename": filename, "path": str(path), "kind": kind,
                 "status": "failed",
                 "error": (
                     f"download failed ({exc}); the page save may be stale —"
@@ -202,12 +242,12 @@ def download_attachments(
         except OSError as exc:
             tmp_path.unlink(missing_ok=True)
             results.append({
-                "filename": filename, "path": str(path),
+                "filename": filename, "path": str(path), "kind": kind,
                 "status": "failed", "error": f"cannot write file: {exc}",
             })
             continue
         results.append({
-            "filename": filename, "path": str(path),
+            "filename": filename, "path": str(path), "kind": kind,
             "status": "downloaded", "error": None,
         })
     return results

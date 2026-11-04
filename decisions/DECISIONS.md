@@ -462,3 +462,20 @@ leave flat drops flat (rejected -- contradicts the per-folder organization
 the owner asked for).
 Revisit when: The legacy document_path column can be retired entirely (all
 rows adopted and no writer needs it -- then drop the fallback).
+
+## 025 - Fetch the generated project document too
+
+Decision: fetch-portal now enumerates both OpenGov file sources: the
+uploaded attachments list and the generated documentAttachment record
+(dict, list, or absent -- all tolerated). Each item carries a kind label
+(attachment vs generated) shown in the CLI output; same-name batch mates
+are numbered ("doc (2).pdf") so two sources can never silently collide.
+Why: The generated snapshot (project sections compiled at posting) can hold
+text the RFP lacks; a complete solicitation package needs both for accurate
+evaluation. The owner spotted the gap live: one file fetched of two offered.
+Alternatives: Separate command/flag for the generated doc (rejected --
+one package, one fetch); DB marker per kind (rejected -- schema churn for
+display value, the CLI label suffices).
+Revisit when: A page populates proposalDocuments (empty on the observed
+page -- map from a fresh save, never guess); addenda return (then decide
+whether the snapshot regenerates per addendum and needs re-fetching).

@@ -50,9 +50,10 @@ Then open http://127.0.0.1:8000/ in your browser.
 - `fetch-portal <id> --from-file page.html` backfills an OpenGov
   opportunity (portal/agency numbers, dates) from a project page you saved
   in your browser (view-source or plain save both work — OpenGov 403s
-  scripts, so the browser step stays human) and downloads every attached
-  file into `drop/opp-<id>/`. Re-run when links go stale: signed URLs
-  expire, and failures say to re-save the page.
+  scripts, so the browser step stays human) and downloads every file into
+  `drop/opp-<id>/`: the generated project document plus all attachments.
+  Re-run when links go stale: signed URLs expire, and failures say to
+  re-save the page.
 - `reqs` lists the requirement checklist (from `data/requirements_gov.json`).
   `set-eval <id> <code> <PASS|FAIL|UNKNOWN|N/A> --quote "..."` records one
   judgment; `evals <id>` shows the checklist. The detail page shows it too.

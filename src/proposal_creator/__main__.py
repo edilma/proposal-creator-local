@@ -311,12 +311,17 @@ def main(argv: list[str] | None = None) -> int:
             )
             failed = 0
             for item in results:
+                label = (
+                    "project document"
+                    if item.get("kind") == "generated"
+                    else "attachment"
+                )
                 if item["status"] == "failed":
                     failed += 1
-                    print(f"failed: {item['filename']}: {item['error']}")
+                    print(f"failed: {item['filename']} ({label}): {item['error']}")
                     continue
                 add_document(conn, args.id, item["path"], source="portal")
-                print(f"{item['status']}: {item['path']}")
+                print(f"{item['status']}: {item['path']} ({label})")
             confirm_documents(conn, args.id)
         if failed:
             print(f"fetch-portal done with {failed} failed download(s).")
