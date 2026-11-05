@@ -15,3 +15,5 @@ drop/*
 drafts/*
 !drafts/.gitkeep
 samples/opengov-page-322586.html
+
+readme2.md

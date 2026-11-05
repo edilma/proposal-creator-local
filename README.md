@@ -1,10 +1,83 @@
-# proposal-creator-local
+# SmallBiz Rainmaker AI
+### Powered by Meta Muse Spark
 
-From a 15-document government RFP to an evidence-backed bid decision and proposal draft — powered by Meta Muse.
+**Let AI Be Your Rainmaker. Turn Opportunities into Deals.**
 
-A local assistant that reads a government solicitation and tells a small business
-whether it can bid — with a verbatim quote behind every answer — then drafts the
-response package. It never submits; a person decides. Runs entirely on your machine.
+*From complex government solicitations to evidence-backed bid decisions and tailored proposal drafts.*
+
+Government contracting is full of opportunity. But small businesses face a major disadvantage: large corporations have dedicated teams to evaluate opportunities and write proposals, while smaller businesses often have to do everything themselves.
+
+**SmallBiz Rainmaker AI helps level the playing field.**
+
+Powered by Meta Muse Spark, this local-first AI assistant reviews complete solicitation packages, compares their requirements against a company's documented capabilities, and recommends whether to pursue an opportunity.
+
+When the opportunity is a good fit, it generates a tailored proposal draft and identifies everything that still requires human review.
+
+**We don't just generate proposals. We help small businesses pursue the right opportunities and get more busine$$e$.**
+
+## Watch the 3-minute demo
+
+**[▶ Watch the end-to-end demonstration](https://youtu.be/m0e81Kdc9Ek)**
+
+See a real government solicitation move from document ingestion to AI evaluation, verified evidence, and a structured proposal draft.
+![Explore-Opportunities](docs/images/exploring_oportunities.png)
+
+![Evidence-backed bid evaluation](docs/images/evaluation.png)
+
+
+
+## Meta Muse in Action: 15 Documents, One Analysis
+
+In our live test, Proposal Creator processed a Florida Department of Revenue solicitation containing 15 documents—including the original RFP, appendices, amendments, and Q&A materials.
+
+Rather than analyzing each document in isolation, **Meta Muse reads the combined readable package in a single large-context model call**, allowing it to reason across the solicitation and the company's capabilities.
+
+### Verified demonstration results
+
+| Metric | Result |
+|---|---|
+| Government procurement sources | OpenGov + MyFloridaMarketPlace |
+| Documents in tested solicitation | 15 |
+| Draft-generation input tokens | 93,569 |
+| Draft-generation total tokens | 96,919 |
+| Eligibility decision | CAN BID |
+| Output | Proposal draft + commitments checklist |
+| Human oversight | Required before submission |
+
+## What Makes It Different
+
+- **Bid/no-bid intelligence:** Evaluates whether a company's capabilities match the solicitation before drafting begins.
+- **Large-context reasoning with Meta Muse:** Processes complete readable solicitation packages, including supporting documents, in one model call.
+- **Evidence you can verify:** Checks AI-generated quotations against the original solicitation text. Unsupported quotations are rejected rather than presented as verified evidence.
+- **Two real procurement integrations:** Retrieves solicitation information and documents from OpenGov and MyFloridaMarketPlace.
+- **Solicitation-specific proposal drafting:** Uses the RFP requirements, company profile, and saved company answers to prepare a structured response.
+- **Human-in-the-loop safeguards:** Flags missing commitments, confirmations, and required information. The application never submits a bid automatically.
+
+## Two Solicitations. Two Different Decisions.
+
+Using the same fictional demonstration company, Broward Technology Systems LLC:
+
+**CANNOT BID — Orange County Bicycle Concession**
+
+The company's software capabilities do not match the required bicycle rental, sales, and repair operations.
+
+**CAN BID — Florida Department of Revenue, Random Moment Sampling**
+
+The company's documented software and sampling-platform capabilities align with the solicitation's core requirements.
+
+These contrasting outcomes demonstrate the central idea: **the goal isn't to generate more proposals. It's to help businesses pursue the right opportunities.**
+
+![Bid decisions](docs/images/can_bid.png)
+
+## How It Works
+
+Government notice → Solicitation ingestion → Complete document package → Meta Muse eligibility evaluation → Verified evidence → Bid/no-bid decision → Proposal draft → Human review
+
+![Proposal draft and human-review requirements](docs/images/proposal.png)
+
+---
+
+*Hackathon demonstration note: Broward Technology Systems LLC and its qualifications, certifications, and past performance are entirely fictional. The procurement solicitations used for testing are real. All generated proposals are drafts and require human review.*
 
 See [AGENTS.md](AGENTS.md) for working rules, `decisions/DECISIONS.md` for why
 things are built the way they are, and `decisions/proposal-system-brainstorm.md`
